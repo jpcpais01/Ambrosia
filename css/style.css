@@ -248,6 +248,7 @@ h1, h2, h3, h4, h5 {
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
   border-bottom: 1px solid rgba(200, 146, 42, 0.12);
 }
+#nav.scrolled .nav-link { color: var(--cream); }
 
 .nav-logo {
   font-family: var(--font-display);
