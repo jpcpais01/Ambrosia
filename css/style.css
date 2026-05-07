@@ -443,7 +443,7 @@ h1, h2, h3, h4, h5 {
   position: relative;
   z-index: 3;
   width: 100%;
-  padding: 0 var(--gutter) clamp(2.5rem, 4vw, 4.5rem);
+  padding: 0 var(--gutter) clamp(1.5rem, 2.5vw, 3rem) clamp(0.8rem, 2vw, 2.5rem);
 }
 
 .hero-eyebrow {
@@ -2260,7 +2260,7 @@ h1, h2, h3, h4, h5 {
   #nav.scrolled { padding: 0.9rem var(--gutter); }
 
   /* Hero */
-  .hero-content { padding-bottom: clamp(1.2rem, 4vw, 2rem); }
+  .hero-content { padding-bottom: clamp(0.5rem, 2vw, 1rem); }
   .hero-title { max-width: 100%; font-size: clamp(2.8rem, 7vw, 5rem); }
   .hero-cta { flex-direction: column; align-items: flex-start; }
   .hero-cta .btn { width: 100%; justify-content: center; }
@@ -2336,7 +2336,7 @@ h1, h2, h3, h4, h5 {
   .nav-logo { font-size: 1.3rem; }
 
   /* Hero */
-  .hero-content { padding-bottom: clamp(1rem, 5vw, 1.75rem); }
+  .hero-content { padding-bottom: clamp(0.3rem, 1.5vw, 0.7rem); }
   .hero-sub { font-size: 0.95rem; }
   #hero { min-height: 100svh; }
 
