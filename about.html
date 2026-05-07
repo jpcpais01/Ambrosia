@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="A história da Ambrosia Coffee — uma paixão pelo café de especialidade que começou nas florestas tropicais do mundo." />
+  <meta name="theme-color" content="#0D0500" />
+  <title>A Nossa História — Ambrosia Coffee</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+  <style>
+    /* About page decorative elements */
+    .about-pull-quote {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 3.5vw, 3.5rem);
+      font-style: italic;
+      font-weight: 500;
+      color: var(--amber);
+      line-height: 1.3;
+      letter-spacing: -0.02em;
+      position: relative;
+      padding: 2rem 0;
+      border-top: 1px solid rgba(200,146,42,0.2);
+      border-bottom: 1px solid rgba(200,146,42,0.2);
+      margin: 3rem 0;
+    }
+
+    .about-pull-quote::before {
+      content: '"';
+      display: block;
+      font-size: 5rem;
+      line-height: 0;
+      margin-bottom: 1.5rem;
+      opacity: 0.3;
+    }
+
+    /* Horizontal image gallery */
+    .about-gallery {
+      display: flex;
+      gap: 1px;
+      overflow: hidden;
+    }
+
+    .gallery-item {
+      flex: 1;
+      aspect-ratio: 3/4;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .gallery-item-inner {
+      width: 100%; height: 100%;
+      transition: transform 0.8s var(--ease-smooth);
+    }
+    .gallery-item:hover .gallery-item-inner { transform: scale(1.06); }
+
+    /* Map placeholder */
+    .origin-map {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/7;
+      background: var(--forest);
+      border-radius: 8px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Cert badges */
+    .cert-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      text-align: center;
+    }
+    .cert-item .cert-icon { font-size: 2.5rem; margin-bottom: .8rem; }
+    .cert-item .cert-name {
+      font-family: var(--font-ui);
+      font-size: .65rem;
+      font-weight: 700;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--amber);
+      margin-bottom: .3rem;
+    }
+    .cert-item .cert-desc {
+      font-family: var(--font-body);
+      font-size: .9rem;
+      color: rgba(245,230,208,.45);
+      line-height: 1.5;
+    }
+
+    @media (max-width: 768px) {
+      .cert-grid { grid-template-columns: repeat(2, 1fr); }
+      .about-gallery { flex-direction: column; }
+      .gallery-item { aspect-ratio: 16/9; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ CUSTOM CURSOR ════════════════════════════════════════ -->
+<div id="cursor"      aria-hidden="true"></div>
+<div id="cursor-ring" aria-hidden="true"></div>
+<div id="scroll-progress" aria-hidden="true"></div>
+
+<!-- ══ NAVIGATION ═══════════════════════════════════════════ -->
+<nav id="nav" role="navigation" aria-label="Navegação principal">
+  <a href="index.html" class="nav-logo" aria-label="Ambrosia Homepage">Ambro<span>sia</span></a>
+  <ul class="nav-links" role="list">
+    <li><a href="index.html"    class="nav-link">Início</a></li>
+    <li><a href="products.html" class="nav-link">Cafés</a></li>
+    <li><a href="about.html"    class="nav-link">História</a></li>
+    <li><a href="index.html#newsletter" class="nav-link">Subscrever</a></li>
+  </ul>
+  <div class="nav-actions">
+    <button class="nav-cart-btn" data-open-cart aria-label="Abrir carrinho">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+      </svg>
+      <span>Carrinho</span>
+      <span class="cart-count" style="display:none">0</span>
+    </button>
+    <button class="hamburger" id="hamburger" aria-label="Abrir menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- ══ MOBILE MENU ══════════════════════════════════════════ -->
+<div id="mobile-menu" role="dialog" aria-label="Menu mobile" aria-modal="true">
+  <a href="index.html"    class="mobile-nav-link">Início</a>
+  <a href="products.html" class="mobile-nav-link">Cafés</a>
+  <a href="about.html"    class="mobile-nav-link">História</a>
+  <a href="index.html#newsletter" class="mobile-nav-link">Subscrever</a>
+</div>
+
+<!-- ══ ABOUT HERO ════════════════════════════════════════════ -->
+<section id="about-hero" aria-label="Sobre a Ambrosia">
+
+  <div class="about-hero-bg" aria-hidden="true"></div>
+  <div class="hero-grain"   aria-hidden="true"></div>
+  <div style="position:absolute;inset:0;background:linear-gradient(to top,rgba(13,5,0,.88) 0%,rgba(13,5,0,.2) 60%,transparent 100%);z-index:1" aria-hidden="true"></div>
+
+  <div class="about-hero-content" style="position:relative;z-index:2">
+    <p class="hero-eyebrow">Quem Somos</p>
+    <h1>
+      Uma <em>obsessão</em><br>
+      pelo café<br>
+      perfeito.
+    </h1>
+    <p style="margin-top:2rem">
+      Nascemos da paixão. Crescemos com propósito.<br>
+      Cada chávena é uma promessa que cumprimos.
+    </p>
+  </div>
+
+</section>
+
+<!-- ══ MARQUEE ══════════════════════════════════════════════ -->
+<div class="marquee-band" aria-hidden="true">
+  <div class="marquee-track">
+    <span class="marquee-item">Fundada com Paixão</span>
+    <span class="marquee-sep">✦</span>
+    <span class="marquee-item">Comércio Justo</span>
+    <span class="marquee-sep">✦</span>
+    <span class="marquee-item">100% Sustentável</span>
+    <span class="marquee-sep">✦</span>
+    <span class="marquee-item">Rastreabilidade Total</span>
+    <span class="marquee-sep">✦</span>
+    <span class="marquee-item">Torra Artesanal</span>
+    <span class="marquee-sep">✦</span>
+  </div>
+</div>
+
+<!-- ══ STORY ════════════════════════════════════════════════ -->
+<section id="about-story" aria-label="A nossa história">
+  <div class="container">
+    <div class="story-grid">
+
+      <div class="story-media">
+        <!--
+          Replace with real image:
+          <img src="assets/images/about-story-main.jpg" alt="Fundador da Ambrosia numa fazenda de café" class="story-img-main" />
+          <img src="assets/images/about-story-float.jpg" alt="Grãos de café crus" class="story-img-float" />
+        -->
+        <div class="story-img-main" style="
+          background: linear-gradient(160deg, #1e3328 0%, #4a7c59 50%, #2d4a3e 100%);
+          display:flex;align-items:center;justify-content:center;
+        " aria-label="Imagem: Fundador da Ambrosia numa fazenda">
+          <svg width="80" height="80" viewBox="0 0 80 80" fill="none" aria-hidden="true" opacity="0.2">
+            <circle cx="40" cy="40" r="35" stroke="#E8C97A" stroke-width="1"/>
+            <circle cx="40" cy="40" r="22" stroke="#E8C97A" stroke-width="1"/>
+            <circle cx="40" cy="40" r="9"  stroke="#E8C97A" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="story-img-float" style="
+          background: linear-gradient(135deg, #6b2c0e, #c8922a);
+          display:flex;align-items:center;justify-content:center;
+        " aria-label="Imagem: Grãos de café">
+          <span style="font-size:2.5rem" aria-hidden="true">☕</span>
+        </div>
+      </div>
+
+      <div class="story-content">
+        <p class="section-label">A Nossa Origem</p>
+        <h2>
+          Começou numa<br>
+          manhã de <em>nevoeiro</em><br>
+          na Etiópia.
+        </h2>
+
+        <p>
+          Era 2019. O nosso fundador estava numa quinta familiar a 2.100 metros de altitude
+          quando provou pela primeira vez um café colhido horas antes. Naquele momento,
+          percebeu que o que bebia em Portugal chamava-se café mas não era nada disto.
+        </p>
+
+        <p>
+          Regressou a Portugal com uma certeza: tinha de trazer esta experiência sensorial
+          para todos. Não o café que conhecíamos, mas o café como ele pode ser —
+          complexo, vibrante, emocionante.
+        </p>
+
+        <div class="about-pull-quote js-fade-up">
+          O café não é uma bebida. É uma linguagem que o mundo inteiro fala.
+        </div>
+
+        <p>
+          A Ambrosia nasceu em 2020, no meio de uma pandemia, com um forno de torra
+          e uma convicção inabalável. Hoje, trabalhamos com 34 produtores em 12 países,
+          e cada lote continua a ser tratado com o mesmo cuidado e obsessão.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ GALLERY ═══════════════════════════════════════════════ -->
+<section aria-label="Galeria de imagens">
+  <div class="about-gallery">
+    <div class="gallery-item">
+      <div class="gallery-item-inner" style="
+        background: linear-gradient(160deg, #1e3328, #4a7c59);
+        display:flex;align-items:center;justify-content:center;
+      " aria-label="Plantação de café">
+        <span style="font-size:4rem;opacity:.4" aria-hidden="true">🌿</span>
+      </div>
+    </div>
+    <div class="gallery-item">
+      <div class="gallery-item-inner" style="
+        background: linear-gradient(160deg, #3d2000, #c8922a);
+        display:flex;align-items:center;justify-content:center;
+      " aria-label="Processo de torra">
+        <span style="font-size:4rem;opacity:.4" aria-hidden="true">🔥</span>
+      </div>
+    </div>
+    <div class="gallery-item">
+      <div class="gallery-item-inner" style="
+        background: linear-gradient(160deg, #1a0a00, #6b4010);
+        display:flex;align-items:center;justify-content:center;
+      " aria-label="Grãos de café">
+        <span style="font-size:4rem;opacity:.4" aria-hidden="true">☕</span>
+      </div>
+    </div>
+    <div class="gallery-item">
+      <div class="gallery-item-inner" style="
+        background: linear-gradient(160deg, #2d4a3e, #6b9e73);
+        display:flex;align-items:center;justify-content:center;
+      " aria-label="Produtores locais">
+        <span style="font-size:4rem;opacity:.4" aria-hidden="true">🤝</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ VALUES ════════════════════════════════════════════════ -->
+<section id="about-values" aria-label="Os nossos valores">
+  <div class="container">
+    <div class="values-intro">
+      <p class="section-label js-fade-up">O Que Nos Move</p>
+      <h2 class="js-fade-up">Valores que <em style="color:var(--amber);font-style:italic">guiam</em> cada decisão</h2>
+      <p class="js-fade-up">Não são apenas palavras. São os princípios que determinam com quem trabalhamos,
+      como torramos e como tratamos cada cliente.</p>
+    </div>
+
+    <div class="values-grid" role="list">
+      <div class="value-card" role="listitem">
+        <span class="value-icon" aria-hidden="true">🌱</span>
+        <div class="value-title">Sustentabilidade Real</div>
+        <p class="value-desc">
+          Não fazemos greenwashing. Cada produtor com quem trabalhamos tem práticas agrícolas
+          certificadas e recebe um preço acima do mercado para garantir a sustentabilidade das suas famílias.
+        </p>
+      </div>
+      <div class="value-card" role="listitem">
+        <span class="value-icon" aria-hidden="true">🔬</span>
+        <div class="value-title">Obsessão pela Qualidade</div>
+        <p class="value-desc">
+          Cada lote passa por cupping rigoroso antes de chegar até ti.
+          Menos de 30% dos cafés que provamos chegam ao catálogo.
+          A excelência não é negociável.
+        </p>
+      </div>
+      <div class="value-card" role="listitem">
+        <span class="value-icon" aria-hidden="true">🤝</span>
+        <div class="value-title">Comércio Directo</div>
+        <p class="value-desc">
+          Eliminamos os intermediários. Compramos directamente ao produtor,
+          pagamos preços justos, e construímos relações de longo prazo baseadas
+          na confiança e no respeito mútuo.
+        </p>
+      </div>
+      <div class="value-card" role="listitem">
+        <span class="value-icon" aria-hidden="true">📚</span>
+        <div class="value-title">Educação & Cultura</div>
+        <p class="value-desc">
+          Queremos que cada cliente aprenda a apreciar o café de forma mais profunda.
+          Por isso partilhamos tudo: perfis de sabor, métodos de preparação, histórias de produtores.
+        </p>
+      </div>
+      <div class="value-card" role="listitem">
+        <span class="value-icon" aria-hidden="true">📦</span>
+        <div class="value-title">Frescura Garantida</div>
+        <p class="value-desc">
+          O café perde os seus aromas rapidamente após a torra. Por isso enviamos
+          sempre dentro de 48 horas, em embalagem com válvula degassing que preserva
+          a frescura por semanas.
+        </p>
+      </div>
+      <div class="value-card" role="listitem">
+        <span class="value-icon" aria-hidden="true">♻️</span>
+        <div class="value-title">Embalagem Consciente</div>
+        <p class="value-desc">
+          As nossas embalagens são feitas de materiais compostáveis. A borracha de
+          vedação é reciclável. Estamos no caminho de zero plástico até 2026.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ CERTIFICATIONS ════════════════════════════════════════ -->
+<section style="padding:var(--section-v) var(--gutter);background:var(--dark-coffee)" aria-label="Certificações">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:clamp(2.5rem,5vw,5rem)">
+      <p class="section-label js-fade-up">Certificações</p>
+      <h2 class="js-fade-up" style="font-family:var(--font-display);font-size:clamp(2rem,4vw,4rem);color:var(--linen)">
+        Confiança com <em style="color:var(--amber);font-style:italic">provas dadas</em>
+      </h2>
+    </div>
+    <div class="cert-grid">
+      <div class="cert-item js-fade-up">
+        <div class="cert-icon" aria-hidden="true">🏆</div>
+        <div class="cert-name">SCA Certified</div>
+        <div class="cert-desc">Specialty Coffee Association — padrão máximo da indústria</div>
+      </div>
+      <div class="cert-item js-fade-up">
+        <div class="cert-icon" aria-hidden="true">🌍</div>
+        <div class="cert-name">Fair Trade</div>
+        <div class="cert-desc">Preço justo e condições dignas para todos os produtores</div>
+      </div>
+      <div class="cert-item js-fade-up">
+        <div class="cert-icon" aria-hidden="true">🌿</div>
+        <div class="cert-name">Organic</div>
+        <div class="cert-desc">Sem pesticidas. Agricultura natural e responsável</div>
+      </div>
+      <div class="cert-item js-fade-up">
+        <div class="cert-icon" aria-hidden="true">🔬</div>
+        <div class="cert-name">Q Grader</div>
+        <div class="cert-desc">Avaliação por especialistas certificados SCA</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TIMELINE ══════════════════════════════════════════════ -->
+<section id="about-timeline" aria-label="A nossa história cronológica">
+  <div class="container">
+    <div class="timeline-title">
+      <p class="section-label js-fade-up">A Nossa Jornada</p>
+      <h2 class="js-fade-up">De um sonho a <em style="color:var(--amber);font-style:italic">realidade</em></h2>
+    </div>
+
+    <div class="timeline" role="list">
+      <div class="timeline-item" role="listitem">
+        <div class="timeline-content">
+          <div class="timeline-year">2019</div>
+          <div class="timeline-event">A Revelação na Etiópia</div>
+          <p class="timeline-desc">O nosso fundador visita pela primeira vez as fazendas de Yirgacheffe e prova café como nunca antes.</p>
+        </div>
+        <div class="timeline-dot" aria-hidden="true"></div>
+        <div class="timeline-empty"></div>
+      </div>
+
+      <div class="timeline-item" role="listitem">
+        <div class="timeline-empty"></div>
+        <div class="timeline-dot" aria-hidden="true"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2020</div>
+          <div class="timeline-event">Fundação da Ambrosia</div>
+          <p class="timeline-desc">Nasce a Ambrosia com um forno de torra e 3 origens. Primeiro mês: 47 encomendas.</p>
+        </div>
+      </div>
+
+      <div class="timeline-item" role="listitem">
+        <div class="timeline-content">
+          <div class="timeline-year">2021</div>
+          <div class="timeline-event">Expansão do Catálogo</div>
+          <p class="timeline-desc">Chegamos a 8 origens. Lançamos a subscrição mensal que hoje tem mais de 1.200 membros.</p>
+        </div>
+        <div class="timeline-dot" aria-hidden="true"></div>
+        <div class="timeline-empty"></div>
+      </div>
+
+      <div class="timeline-item" role="listitem">
+        <div class="timeline-empty"></div>
+        <div class="timeline-dot" aria-hidden="true"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2022</div>
+          <div class="timeline-event">Reconhecimento Internacional</div>
+          <p class="timeline-desc">Premiados nos Specialty Coffee Awards de Madrid. Parceria com 20 produtores em 8 países.</p>
+        </div>
+      </div>
+
+      <div class="timeline-item" role="listitem">
+        <div class="timeline-content">
+          <div class="timeline-year">2023</div>
+          <div class="timeline-event">Sustentabilidade em Foco</div>
+          <p class="timeline-desc">Transição para embalagem 100% compostável. Certificação Fair Trade completa.</p>
+        </div>
+        <div class="timeline-dot" aria-hidden="true"></div>
+        <div class="timeline-empty"></div>
+      </div>
+
+      <div class="timeline-item" role="listitem">
+        <div class="timeline-empty"></div>
+        <div class="timeline-dot" aria-hidden="true"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2024</div>
+          <div class="timeline-event">12+ Origens, 34 Produtores</div>
+          <p class="timeline-desc">Expandimos para África, América e Ásia. Mais de 10.000 clientes felizes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ TEAM ══════════════════════════════════════════════════ -->
+<section id="about-team" aria-label="A nossa equipa">
+  <div class="container">
+    <div class="team-header">
+      <p class="section-label js-fade-up" style="color:var(--moss)">As Pessoas</p>
+      <h2 class="js-fade-up" style="color:var(--linen)">
+        Apaixonados pelo <em style="color:var(--pale-gold);font-style:italic">café</em>
+      </h2>
+    </div>
+
+    <div class="team-grid" role="list">
+      <div class="team-card" role="listitem">
+        <div class="team-img-wrap">
+          <!--
+            Replace with: <img src="assets/images/team-joao.jpg" alt="João Silva" class="team-img" />
+          -->
+          <div class="team-img" style="
+            background: linear-gradient(160deg, #2d4a3e, #4a7c59);
+            display:flex;align-items:center;justify-content:center;
+            width:100%;height:100%;
+          " aria-label="Foto: João Silva">
+            <span style="font-size:4rem;opacity:.3" aria-hidden="true">👤</span>
+          </div>
+        </div>
+        <div class="team-name">João Silva</div>
+        <div class="team-role">Fundador &amp; Head Roaster</div>
+      </div>
+
+      <div class="team-card" role="listitem">
+        <div class="team-img-wrap">
+          <div class="team-img" style="
+            background: linear-gradient(160deg, #3d2000, #6b4010);
+            display:flex;align-items:center;justify-content:center;
+            width:100%;height:100%;
+          " aria-label="Foto: Maria Costa">
+            <span style="font-size:4rem;opacity:.3" aria-hidden="true">👤</span>
+          </div>
+        </div>
+        <div class="team-name">Maria Costa</div>
+        <div class="team-role">Q Grader &amp; Diretora de Qualidade</div>
+      </div>
+
+      <div class="team-card" role="listitem">
+        <div class="team-img-wrap">
+          <div class="team-img" style="
+            background: linear-gradient(160deg, #1a0a00, #8b4513);
+            display:flex;align-items:center;justify-content:center;
+            width:100%;height:100%;
+          " aria-label="Foto: Pedro Almeida">
+            <span style="font-size:4rem;opacity:.3" aria-hidden="true">👤</span>
+          </div>
+        </div>
+        <div class="team-name">Pedro Almeida</div>
+        <div class="team-role">Relações com Produtores</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ORIGIN MAP ════════════════════════════════════════════ -->
+<section style="padding:var(--section-v) var(--gutter);background:var(--dark-coffee)" aria-label="Mapa de origens">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:3rem">
+      <p class="section-label js-fade-up">No Mapa</p>
+      <h2 class="js-fade-up" style="font-family:var(--font-display);font-size:clamp(2rem,4vw,4rem);color:var(--linen)">
+        De onde vem o teu <em style="color:var(--amber);font-style:italic">café</em>
+      </h2>
+    </div>
+
+    <div class="origin-map js-scale-in" aria-label="Mapa mundial das nossas origens de café">
+      <svg viewBox="0 0 900 400" width="100%" height="100%" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- Simplified world map outline -->
+        <rect width="900" height="400" fill="#1e3328"/>
+        <!-- Grid lines -->
+        <line x1="0" y1="200" x2="900" y2="200" stroke="rgba(245,230,208,0.04)" stroke-width="1"/>
+        <line x1="450" y1="0" x2="450" y2="400" stroke="rgba(245,230,208,0.04)" stroke-width="1"/>
+        <!-- Equator -->
+        <line x1="0" y1="210" x2="900" y2="210" stroke="rgba(200,146,42,0.12)" stroke-width="1" stroke-dasharray="4,8"/>
+
+        <!-- Continents simplified -->
+        <!-- Africa -->
+        <path d="M430 120 Q450 100 470 120 Q490 160 480 220 Q470 270 450 290 Q430 270 420 230 Q410 170 430 120Z"
+          fill="rgba(45,74,62,0.5)" stroke="rgba(74,124,89,0.3)" stroke-width="1"/>
+        <!-- South America -->
+        <path d="M200 130 Q230 120 250 150 Q260 200 250 260 Q230 300 210 280 Q190 240 195 190 Q200 155 200 130Z"
+          fill="rgba(45,74,62,0.4)" stroke="rgba(74,124,89,0.3)" stroke-width="1"/>
+        <!-- Central America / Mexico -->
+        <path d="M150 100 Q190 90 200 130 Q185 145 165 140 Q145 130 140 115 Q140 105 150 100Z"
+          fill="rgba(45,74,62,0.35)" stroke="rgba(74,124,89,0.3)" stroke-width="1"/>
+        <!-- Asia -->
+        <path d="M550 80 Q650 60 720 90 Q750 120 740 160 Q710 180 670 170 Q620 160 580 140 Q550 120 550 80Z"
+          fill="rgba(45,74,62,0.4)" stroke="rgba(74,124,89,0.3)" stroke-width="1"/>
+        <!-- Europe / Middle East -->
+        <path d="M380 60 Q430 50 450 70 Q460 90 445 100 Q420 110 395 100 Q375 85 380 60Z"
+          fill="rgba(45,74,62,0.3)" stroke="rgba(74,124,89,0.3)" stroke-width="1"/>
+
+        <!-- Coffee belt indicator -->
+        <rect x="0" y="165" width="900" height="80" fill="rgba(200,146,42,0.04)" rx="0"/>
+
+        <!-- Origin markers -->
+        <!-- Ethiopia (Yirgacheffe) -->
+        <circle cx="488" cy="195" r="6" fill="var(--amber)" opacity="0.9"/>
+        <circle cx="488" cy="195" r="12" fill="var(--amber)" opacity="0.15"/>
+        <text x="500" y="185" font-size="9" fill="var(--amber)" font-family="Montserrat, sans-serif">Etiópia</text>
+
+        <!-- Kenya -->
+        <circle cx="492" cy="218" r="5" fill="var(--amber)" opacity="0.8"/>
+        <circle cx="492" cy="218" r="10" fill="var(--amber)" opacity="0.12"/>
+        <text x="504" y="228" font-size="9" fill="var(--amber)" font-family="Montserrat, sans-serif">Quénia</text>
+
+        <!-- Colombia -->
+        <circle cx="210" cy="195" r="5" fill="var(--amber)" opacity="0.8"/>
+        <circle cx="210" cy="195" r="10" fill="var(--amber)" opacity="0.12"/>
+        <text x="155" y="192" font-size="9" fill="var(--amber)" font-family="Montserrat, sans-serif">Colômbia</text>
+
+        <!-- Brazil -->
+        <circle cx="225" cy="240" r="6" fill="var(--amber)" opacity="0.85"/>
+        <circle cx="225" cy="240" r="12" fill="var(--amber)" opacity="0.12"/>
+        <text x="168" y="250" font-size="9" fill="var(--amber)" font-family="Montserrat, sans-serif">Brasil</text>
+
+        <!-- Guatemala -->
+        <circle cx="165" cy="168" r="4" fill="var(--amber)" opacity="0.75"/>
+        <circle cx="165" cy="168" r="9" fill="var(--amber)" opacity="0.1"/>
+        <text x="108" y="162" font-size="9" fill="var(--amber)" font-family="Montserrat, sans-serif">Guatemala</text>
+
+        <!-- Indonesia -->
+        <circle cx="660" cy="225" r="4" fill="var(--amber)" opacity="0.7"/>
+        <circle cx="660" cy="225" r="9" fill="var(--amber)" opacity="0.1"/>
+        <text x="668" y="222" font-size="9" fill="var(--amber)" font-family="Montserrat, sans-serif">Indonésia</text>
+
+        <!-- Coffee belt label -->
+        <text x="20" y="210" font-size="8" fill="rgba(200,146,42,0.4)" font-family="Montserrat, sans-serif" letter-spacing="2">CINTURÃO DO CAFÉ</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ══ ABOUT CTA ═════════════════════════════════════════════ -->
+<section id="about-cta" aria-label="Chamada para acção">
+  <p class="section-label js-fade-up">Pronto para Começar?</p>
+  <h2 class="js-fade-up">
+    A tua próxima<br>
+    chávena favorita<br>
+    <em>está aqui.</em>
+  </h2>
+  <p class="js-fade-up">
+    Explora o nosso catálogo e descobre o café que vai mudar a tua manhã para sempre.
+  </p>
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+    <a href="products.html" class="btn btn-primary js-scale-in">
+      Explorar Cafés
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M5 12h14M12 5l7 7-7 7"/>
+      </svg>
+    </a>
+    <a href="index.html#newsletter" class="btn btn-ghost js-scale-in">Subscrever Newsletter</a>
+  </div>
+</section>
+
+<!-- ══ NEWSLETTER ════════════════════════════════════════════ -->
+<section id="newsletter" aria-label="Subscrever newsletter">
+  <div class="newsletter-bg" aria-hidden="true"></div>
+  <div class="newsletter-grain" aria-hidden="true"></div>
+  <div class="newsletter-inner">
+    <p class="section-label">Fica na Conversa</p>
+    <h2 class="newsletter-title">Histórias &amp;<br>café na tua caixa.</h2>
+    <p class="newsletter-sub">Partilhamos as histórias dos nossos produtores, guias de preparação e lotes exclusivos.</p>
+    <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event)" novalidate>
+      <label for="newsletter-email" class="sr-only">Email</label>
+      <input type="email" id="newsletter-email" name="email" class="newsletter-input" placeholder="O teu email" required autocomplete="email" />
+      <button type="submit" class="newsletter-submit">Subscrever</button>
+    </form>
+  </div>
+</section>
+
+<!-- ══ FOOTER ═══════════════════════════════════════════════ -->
+<footer id="footer" role="contentinfo">
+  <div class="footer-top">
+    <div class="footer-brand">
+      <div class="footer-logo">Ambro<span>sia</span></div>
+      <p class="footer-tagline">Café de especialidade premium, torrado com amor e entregue directamente na tua porta.</p>
+      <div class="footer-socials" role="list">
+        <a href="#" class="social-link" role="listitem" aria-label="Instagram">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+            <rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/>
+            <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
+          </svg>
+        </a>
+        <a href="#" class="social-link" role="listitem" aria-label="TikTok">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.33 6.33 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.18 8.18 0 0 0 4.78 1.52V6.72a4.85 4.85 0 0 1-1.01-.03z"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+    <div class="footer-col">
+      <h3 class="footer-col-title">Cafés</h3>
+      <ul class="footer-links" role="list">
+        <li><a href="products.html" class="footer-link">Single Origin</a></li>
+        <li><a href="products.html" class="footer-link">Espresso</a></li>
+        <li><a href="products.html" class="footer-link">Blends</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h3 class="footer-col-title">Empresa</h3>
+      <ul class="footer-links" role="list">
+        <li><a href="about.html" class="footer-link">A Nossa História</a></li>
+        <li><a href="about.html#about-values" class="footer-link">Valores</a></li>
+        <li><a href="about.html#about-team" class="footer-link">Equipa</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h3 class="footer-col-title">Apoio</h3>
+      <ul class="footer-links" role="list">
+        <li><a href="#" class="footer-link">Envios &amp; Devoluções</a></li>
+        <li><a href="#" class="footer-link">Guia de Preparação</a></li>
+        <li><a href="#" class="footer-link">Contacto</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <p class="footer-copy">© 2025 Ambrosia Coffee. Todos os direitos reservados.</p>
+    <nav class="footer-legal" aria-label="Links legais">
+      <a href="#">Privacidade</a>
+      <a href="#">Termos</a>
+      <a href="#">Cookies</a>
+    </nav>
+  </div>
+</footer>
+
+<!-- ══ CART SIDEBAR ══════════════════════════════════════════ -->
+<div id="cart-overlay" role="presentation" aria-hidden="true"></div>
+<aside id="cart-sidebar" role="dialog" aria-label="Carrinho de compras" aria-modal="true">
+  <div class="cart-header">
+    <h2 class="cart-title">O Teu Carrinho</h2>
+    <button id="cart-close" class="cart-close" aria-label="Fechar carrinho">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+  <div class="cart-body">
+    <div class="cart-empty"><div class="cart-empty-icon">☕</div><p>O teu carrinho está vazio</p></div>
+  </div>
+  <div class="cart-footer">
+    <div class="cart-total-row">
+      <span class="cart-total-label">Subtotal</span>
+      <span class="cart-total-value">0,00 €</span>
+    </div>
+    <button class="checkout-btn" onclick="handleCheckout()">Finalizar Compra</button>
+  </div>
+</aside>
+
+<!-- ══ SCRIPTS ═══════════════════════════════════════════════ -->
+<script src="https://unpkg.com/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script>
+  if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+    gsap.registerPlugin(ScrollTrigger);
+  }
+</script>
+<script src="js/store.js"></script>
+<script src="js/api/dripshipper.js"></script>
+<script src="js/main.js"></script>
+
+<script>
+  function handleNewsletterSubmit(e) {
+    e.preventDefault();
+    window.AmbrosiaCoffee?.showToast('✓ Subscrito com sucesso!');
+    e.target.reset();
+  }
+  function handleCheckout() {
+    const cart = window.AmbrosiStore?.cart || [];
+    if (!cart.length) { window.AmbrosiaCoffee?.showToast('O carrinho está vazio'); return; }
+    window.AmbrosiaCoffee?.showToast('A processar checkout...');
+  }
+</script>
+
+</body>
+</html>
