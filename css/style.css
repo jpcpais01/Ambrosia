@@ -231,7 +231,7 @@ h1, h2, h3, h4, h5 {
   position: fixed;
   top: 0; left: 0; right: 0;
   z-index: var(--z-nav);
-  padding: 1.8rem var(--gutter);
+  padding: 1.8rem clamp(3rem, 10vw, 14rem);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -242,7 +242,7 @@ h1, h2, h3, h4, h5 {
 }
 
 #nav.scrolled {
-  padding: 1.1rem var(--gutter);
+  padding: 1.1rem clamp(3rem, 10vw, 14rem);
   background: rgba(13, 5, 0, 0.88);
   backdrop-filter: blur(20px) saturate(1.4);
   -webkit-backdrop-filter: blur(20px) saturate(1.4);
@@ -2260,6 +2260,7 @@ h1, h2, h3, h4, h5 {
   .nav-cart-btn span:not(.cart-count) { display: none; }
   #nav { padding: 1.1rem var(--gutter); }
   #nav.scrolled { padding: 0.9rem var(--gutter); }
+  #nav, #nav.scrolled { padding-left: var(--gutter); padding-right: var(--gutter); }
 
   /* Hero */
   .hero-content { padding-bottom: clamp(0.5rem, 2vw, 1rem); }
