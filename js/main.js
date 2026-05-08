@@ -173,16 +173,16 @@ function initVideoScrub() {
   const canvas = section.querySelector('.scrub-canvas');
   const texts  = section.querySelectorAll('.scrub-text');
 
-  // displayProgress is the rate-limited version of raw scroll progress.
-  // Everything — video speed, video direction, text zones — follows it.
   let displayProgress = 0;
   let currentRate     = 1;
+  let lastDir         = 1;    // +1 forward, -1 backward — persists when idle
+  let virtualTime     = 0;    // desired video time for backward seeks
   let revSeeking      = false;
   let revPending      = -1;
   let ctx             = null;
 
-  // Max progress units per frame (at 60 fps ≈ 2.8 s minimum full traverse)
-  const MAX_STEP = 0.006;
+  const MAX_STEP       = 0.006;  // max progress units per frame (~2.8 s min traverse)
+  const SEEK_THRESHOLD = 0.04;   // only fire a new seek when target differs by >40 ms
 
   if (canvas) {
     canvas.width  = window.innerWidth;
@@ -232,39 +232,46 @@ function initVideoScrub() {
       displayProgress = Math.max(0, Math.min(1, displayProgress + step));
     }
 
+    // Update last direction on any meaningful movement
+    if (Math.abs(step) > 0.00005) lastDir = Math.sign(step);
+
     // ── Video direction and speed follow displayProgress step ─
     if (video && video.duration > 0) {
-      if (Math.abs(step) < 0.00005) {
-        // Idle — ease back to 1× forward play
-        revSeeking = false;
-        revPending = -1;
-        if (video.paused) video.play().catch(() => {});
-        currentRate += (1 - currentRate) * 0.05;
-        video.playbackRate = Math.max(0.5, currentRate);
 
-      } else if (step > 0) {
-        // Forward — speed proportional to how fast we're moving (1× – 3×)
+      if (step > 0.00005) {
+        // ── Active forward scroll ─────────────────────────────
         revSeeking = false;
         revPending = -1;
+        virtualTime = video.currentTime; // re-sync so backward is accurate if we reverse
         if (video.paused) video.play().catch(() => {});
-        const normalized = step / MAX_STEP;           // 0 → 1
-        const targetRate = 1 + normalized * 2;        // 1× → 3×
+        const targetRate = 1 + (step / MAX_STEP) * 2; // 1× – 3×
         currentRate += (targetRate - currentRate) * 0.18;
         video.playbackRate = currentRate;
 
-      } else {
-        // Backward — same speed rules, same caps, seeking in reverse
+      } else if (step < -0.00005 || (Math.abs(step) <= 0.00005 && lastDir < 0)) {
+        // ── Backward scroll OR idle after scrolling up ────────
+        const activeStep = Math.abs(step) > 0.00005 ? Math.abs(step) : MAX_STEP * 0.4;
         if (!video.paused) video.pause();
-        const timeStep = Math.abs(step) * video.duration * 1.5;
-        const target   = Math.max(0, video.currentTime - timeStep);
-        if (!revSeeking) {
-          video.currentTime = target;
+
+        // Advance virtual time backward
+        virtualTime = Math.max(0, virtualTime - activeStep * video.duration * 1.5);
+
+        // Only fire a seek when target has moved enough (avoids seek-every-frame stutter)
+        if (!revSeeking && Math.abs(virtualTime - video.currentTime) > SEEK_THRESHOLD) {
+          video.currentTime = virtualTime;
           revSeeking = true;
           revPending = -1;
-        } else {
-          revPending = target;
+        } else if (revSeeking) {
+          revPending = virtualTime;
         }
         currentRate = 1;
+
+      } else {
+        // ── Idle after scrolling forward — play at 1× ─────────
+        virtualTime = video.currentTime;
+        if (video.paused) video.play().catch(() => {});
+        currentRate += (1 - currentRate) * 0.05;
+        video.playbackRate = Math.max(0.5, currentRate);
       }
     }
 
