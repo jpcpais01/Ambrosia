@@ -174,9 +174,9 @@ function initVideoScrub() {
   const texts  = section.querySelectorAll('.scrub-text');
 
   let currentRate = 1;
+  let lastScrollY = window.scrollY;
   let ctx = null;
 
-  // Canvas fallback while video loads
   if (canvas) {
     canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -190,68 +190,61 @@ function initVideoScrub() {
   if (video) {
     video.loop  = true;
     video.muted = true;
-    video.addEventListener('canplay',  () => video.play().catch(() => {}));
-    video.addEventListener('playing',  () => { if (canvas) canvas.style.display = 'none'; });
-    video.addEventListener('error',    () => { if (canvas) canvas.style.removeProperty('display'); });
+    // Ensure playback starts (autoplay attr handles most cases, this is a fallback)
+    const tryPlay = () => video.play().catch(() => {});
+    video.addEventListener('canplay', tryPlay);
+    video.addEventListener('playing', () => { if (canvas) canvas.style.display = 'none'; });
   }
 
-  // Pause when section leaves viewport — saves resources
-  new IntersectionObserver(entries => {
-    if (!video) return;
-    entries[0].isIntersecting ? video.play().catch(() => {}) : video.pause();
-  }, { threshold: 0.1 }).observe(section);
-
   /*
-   * Scroll progress (0→1) drives everything:
+   * Text zones — defined in scroll-progress space (0 → 1).
+   * Independent of video time so they're always predictable.
    *
-   *  0.00 – 0.08  entrance  (1x, no text)
-   *  0.08 – 0.30  text[0]   (1x)   "Da origem…"
-   *  0.30 – 0.42  bridge    (bell-curve up to 2.2x)
-   *  0.42 – 0.62  text[1]   (1x)   "…à torra perfeita…"
-   *  0.62 – 0.74  bridge    (bell-curve up to 2.2x)
-   *  0.74 – 0.92  text[2]   (1x)   "…à tua chávena."
-   *  0.92 – 1.00  outro     (1x, no text)
+   *  0.00–0.10  entrance
+   *  0.10–0.33  "Da origem…"
+   *  0.33–0.50  transition (speeds up with scroll velocity)
+   *  0.50–0.68  "…à torra perfeita…"
+   *  0.68–0.82  transition
+   *  0.82–0.95  "…à tua chávena."
+   *  0.95–1.00  outro
    */
   const TEXT_ZONES = [
-    { show: 0.08, hide: 0.30 },
-    { show: 0.42, hide: 0.62 },
-    { show: 0.74, hide: 0.92 },
-  ];
-  const BRIDGE_ZONES = [
-    { start: 0.30, end: 0.42 },
-    { start: 0.62, end: 0.74 },
+    { show: 0.10, hide: 0.33 },
+    { show: 0.50, hide: 0.68 },
+    { show: 0.82, hide: 0.95 },
   ];
 
   function tick() {
+    // ── Scroll velocity → playback rate ──────────────────────
+    const scrollY    = window.scrollY;
+    const delta      = Math.abs(scrollY - lastScrollY);
+    lastScrollY      = scrollY;
+
+    // delta px/frame: 0 = idle (1×), ~15px/frame = fast scroll (2.5×)
+    const targetRate = 1 + Math.min(delta / 12, 1.5);
+    // Snap up fast, ease back slowly for a "linger" feel
+    currentRate += (targetRate - currentRate) * (targetRate > currentRate ? 0.18 : 0.04);
+
+    if (video && video.readyState >= 1) {
+      // Works even on paused/loading video — browser clamps to valid range
+      video.playbackRate = Math.max(0.5, Math.min(currentRate, 4));
+      if (video.paused) video.play().catch(() => {});
+    }
+
+    // ── Scroll progress through section ──────────────────────
     const rect     = section.getBoundingClientRect();
     const traveled = -rect.top;
     const total    = rect.height - window.innerHeight;
     const progress = Math.max(0, Math.min(1, traveled / total));
 
-    // Speed: bell-curve ramp inside each bridge zone, 1x everywhere else
-    let targetRate = 1;
-    for (const b of BRIDGE_ZONES) {
-      if (progress >= b.start && progress <= b.end) {
-        const t = (progress - b.start) / (b.end - b.start); // 0 → 1
-        targetRate = 1 + Math.sin(t * Math.PI) * 1.2;       // 1x → 2.2x → 1x
-        break;
-      }
-    }
-
-    // Smooth lerp — fast to accelerate, gentle to decelerate
-    currentRate += (targetRate - currentRate) * (targetRate > currentRate ? 0.10 : 0.05);
-    if (video && video.readyState >= 2 && !video.paused) {
-      video.playbackRate = Math.max(0.1, currentRate);
-    }
-
-    // Text visibility driven by scroll, not video time
+    // ── Text visibility ───────────────────────────────────────
     texts.forEach((t, i) => {
       const z = TEXT_ZONES[i];
       if (!z) return;
       t.classList.toggle('visible', progress >= z.show && progress <= z.hide);
     });
 
-    // Canvas fallback
+    // ── Canvas fallback ───────────────────────────────────────
     if (canvas && canvas.style.display !== 'none' && ctx) {
       drawPlaceholder(ctx, canvas, progress);
     }
