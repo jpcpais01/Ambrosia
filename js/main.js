@@ -169,85 +169,84 @@ function initVideoScrub() {
   const section = document.getElementById('video-scrub');
   if (!section) return;
 
-  const video  = section.querySelector('.scrub-video');
+  const video = section.querySelector('.scrub-video');
   const canvas = section.querySelector('.scrub-canvas');
   const texts  = section.querySelectorAll('.scrub-text');
 
-  let ctx        = null;
-  let duration   = 0;
-  let isSeeking  = false;
-  let pendingTime = -1;   // most recent target while a seek is in-flight
-  let useCanvas  = true;
-  let lastProgress = -1;
+  let targetRate  = 1;
+  let currentRate = 1;
+  let scrollTimer = null;
+  let ctx = null;
 
-  // Canvas — only used as fallback while video hasn't loaded
+  // Canvas fallback while video loads
   if (canvas) {
-    const resizeCanvas = () => {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    ctx = canvas.getContext('2d');
+    window.addEventListener('resize', () => {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
-    };
-    resizeCanvas();
-    ctx = canvas.getContext('2d');
-    window.addEventListener('resize', resizeCanvas, { passive: true });
+    }, { passive: true });
   }
 
   if (video) {
-    video.addEventListener('loadedmetadata', () => {
-      duration = video.duration;
-    });
+    video.loop  = true;
+    video.muted = true;
 
-    // Hide canvas as soon as video can play — avoids double-draw overhead
-    video.addEventListener('canplaythrough', () => {
-      useCanvas = false;
+    // Start playing as soon as enough data is available
+    video.addEventListener('canplay', () => video.play().catch(() => {}));
+
+    // Hide canvas once video is running
+    video.addEventListener('playing', () => {
       if (canvas) canvas.style.display = 'none';
     });
 
-    // When seek completes, apply the latest pending target (catches up to fast scroll)
-    video.addEventListener('seeked', () => {
-      isSeeking = false;
-      if (pendingTime >= 0) {
-        const t = pendingTime;
-        pendingTime = -1;
-        video.currentTime = t;
-        isSeeking = true;
-      }
-    });
-
     video.addEventListener('error', () => {
-      useCanvas = true;
       if (canvas) canvas.style.removeProperty('display');
     });
   }
 
+  // Only play/pause based on section visibility — saves resources
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!video) return;
+      if (e.isIntersecting) video.play().catch(() => {});
+      else                  video.pause();
+    });
+  }, { threshold: 0.1 });
+  if (video) observer.observe(section);
+
+  // Scroll → speed up to 2x, ease back to 1x after 200 ms of no scroll
+  window.addEventListener('scroll', () => {
+    targetRate = 2;
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(() => { targetRate = 1; }, 200);
+  }, { passive: true });
+
   function tick() {
-    const rect     = section.getBoundingClientRect();
-    const traveled = -rect.top;
-    const total    = rect.height - window.innerHeight;
-    const progress = Math.max(0, Math.min(1, traveled / total));
+    // Smooth lerp toward target rate (snappier up, relaxed down)
+    const lerpSpeed = targetRate > currentRate ? 0.12 : 0.06;
+    currentRate += (targetRate - currentRate) * lerpSpeed;
 
-    // Only do work when progress meaningfully changed
-    if (Math.abs(progress - lastProgress) > 0.0008) {
-      lastProgress = progress;
+    if (video && video.readyState >= 2 && !video.paused) {
+      video.playbackRate = currentRate;
+    }
 
-      // Seek video — queue latest target while a seek is in-flight
-      if (video && duration > 0) {
-        const targetTime = duration * progress;
-        if (!isSeeking) {
-          video.currentTime = targetTime;
-          isSeeking = true;
-          pendingTime = -1;
-        } else {
-          pendingTime = targetTime; // will be applied once seeked fires
-        }
-      }
+    // Canvas fallback draw while video isn't ready
+    if (canvas && canvas.style.display !== 'none' && ctx) {
+      const rect     = section.getBoundingClientRect();
+      const traveled = -rect.top;
+      const total    = rect.height - window.innerHeight;
+      const p = Math.max(0, Math.min(1, traveled / total));
+      drawPlaceholder(ctx, canvas, p);
+    }
 
-      // Canvas fallback
-      if (useCanvas && ctx) drawPlaceholder(ctx, canvas, progress);
-
-      // Text phases
+    // Text phases tied to video playback position
+    if (video && video.duration > 0) {
+      const p = video.currentTime / video.duration;
       texts.forEach((t, i) => {
         const mid     = (i + 1) / (texts.length + 1);
-        const inRange = progress > mid - 0.12 && progress < mid + 0.18;
+        const inRange = p > mid - 0.1 && p < mid + 0.15;
         t.classList.toggle('visible', inRange);
       });
     }
