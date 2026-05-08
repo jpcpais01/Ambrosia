@@ -173,11 +173,16 @@ function initVideoScrub() {
   const canvas = section.querySelector('.scrub-canvas');
   const texts  = section.querySelectorAll('.scrub-text');
 
-  let currentRate = 1;
-  let lastScrollY = window.scrollY;
-  let revSeeking  = false; // backward seek in-flight
-  let revPending  = -1;    // latest backward target while seeking
-  let ctx = null;
+  // displayProgress is the rate-limited version of raw scroll progress.
+  // Everything — video speed, video direction, text zones — follows it.
+  let displayProgress = 0;
+  let currentRate     = 1;
+  let revSeeking      = false;
+  let revPending      = -1;
+  let ctx             = null;
+
+  // Max progress units per frame (at 60 fps ≈ 2.8 s minimum full traverse)
+  const MAX_STEP = 0.006;
 
   if (canvas) {
     canvas.width  = window.innerWidth;
@@ -194,8 +199,6 @@ function initVideoScrub() {
     video.muted = true;
     video.addEventListener('canplay',  () => video.play().catch(() => {}));
     video.addEventListener('playing',  () => { if (canvas) canvas.style.display = 'none'; });
-
-    // Backward seek queue — applies latest pending target once current seek finishes
     video.addEventListener('seeked', () => {
       if (revPending >= 0) {
         video.currentTime = revPending;
@@ -206,70 +209,75 @@ function initVideoScrub() {
     });
   }
 
-  // Text zones in scroll-progress space — independent of video time
   const TEXT_ZONES = [
     { show: 0.10, hide: 0.33 },
     { show: 0.50, hide: 0.68 },
     { show: 0.82, hide: 0.95 },
   ];
 
-  // Max px-per-frame before speed is capped (prevents warp on fast flick)
-  const MAX_DELTA = 22;
-
   function tick() {
-    const scrollY  = window.scrollY;
-    const rawDelta = scrollY - lastScrollY;
-    lastScrollY    = scrollY;
+    // ── Raw scroll progress ───────────────────────────────────
+    const rect          = section.getBoundingClientRect();
+    const rawProgress   = Math.max(0, Math.min(1, -rect.top / (rect.height - window.innerHeight)));
 
-    // Clamp so a sudden fast flick never warp-speeds the video
-    const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), MAX_DELTA);
+    // ── Rate-limited display progress ────────────────────────
+    // If user jumped way past (e.g. keyboard Home/End), snap instead of trailing
+    const diff = rawProgress - displayProgress;
+    let step;
+    if (Math.abs(diff) > 0.25) {
+      displayProgress = rawProgress; // snap — avoids long catch-up after big jumps
+      step = 0;
+    } else {
+      step = Math.sign(diff) * Math.min(Math.abs(diff), MAX_STEP);
+      displayProgress = Math.max(0, Math.min(1, displayProgress + step));
+    }
 
+    // ── Video direction and speed follow displayProgress step ─
     if (video && video.duration > 0) {
-
-      if (delta > 0.5) {
-        // ── Scrolling DOWN → play forward, boost rate ─────────
+      if (Math.abs(step) < 0.00005) {
+        // Idle — ease back to 1× forward play
         revSeeking = false;
         revPending = -1;
         if (video.paused) video.play().catch(() => {});
-        const targetRate = 1 + Math.min(delta / 10, 2); // 1× – 3×, hard cap
-        currentRate += (targetRate - currentRate) * 0.18; // snap up fast
+        currentRate += (1 - currentRate) * 0.05;
+        video.playbackRate = Math.max(0.5, currentRate);
+
+      } else if (step > 0) {
+        // Forward — speed proportional to how fast we're moving (1× – 3×)
+        revSeeking = false;
+        revPending = -1;
+        if (video.paused) video.play().catch(() => {});
+        const normalized = step / MAX_STEP;           // 0 → 1
+        const targetRate = 1 + normalized * 2;        // 1× → 3×
+        currentRate += (targetRate - currentRate) * 0.18;
         video.playbackRate = currentRate;
 
-      } else if (delta < -0.5) {
-        // ── Scrolling UP → seek backwards ────────────────────
+      } else {
+        // Backward — same speed rules, same caps, seeking in reverse
         if (!video.paused) video.pause();
-        const step   = (Math.abs(delta) / MAX_DELTA) * 0.12 * video.duration;
-        const target = Math.max(0, video.currentTime - step);
+        const normalized = Math.abs(step) / MAX_STEP; // 0 → 1
+        const timeStep   = normalized * 0.1 * video.duration;
+        const target     = Math.max(0, video.currentTime - timeStep);
         if (!revSeeking) {
           video.currentTime = target;
           revSeeking = true;
+          revPending = -1;
         } else {
-          revPending = target; // queue most recent target
+          revPending = target;
         }
-        currentRate = 1; // reset so next forward scroll starts fresh at 1×
-
-      } else {
-        // ── Idle → ease back to 1× and keep playing ──────────
-        if (video.paused && !revSeeking) video.play().catch(() => {});
-        currentRate += (1 - currentRate) * 0.05; // slow ease back
-        video.playbackRate = Math.max(0.5, currentRate);
+        currentRate = 1;
       }
     }
 
-    // Scroll progress through section (for text zones)
-    const rect     = section.getBoundingClientRect();
-    const traveled = -rect.top;
-    const total    = rect.height - window.innerHeight;
-    const progress = Math.max(0, Math.min(1, traveled / total));
-
+    // ── Text zones follow displayProgress ────────────────────
     texts.forEach((t, i) => {
       const z = TEXT_ZONES[i];
       if (!z) return;
-      t.classList.toggle('visible', progress >= z.show && progress <= z.hide);
+      t.classList.toggle('visible', displayProgress >= z.show && displayProgress <= z.hide);
     });
 
     if (canvas && canvas.style.display !== 'none' && ctx) {
-      drawPlaceholder(ctx, canvas, progress);
+      drawPlaceholder(ctx, canvas, displayProgress);
     }
 
     requestAnimationFrame(tick);
