@@ -255,9 +255,8 @@ function initVideoScrub() {
       } else {
         // Backward — same speed rules, same caps, seeking in reverse
         if (!video.paused) video.pause();
-        const normalized = Math.abs(step) / MAX_STEP; // 0 → 1
-        const timeStep   = normalized * 0.1 * video.duration;
-        const target     = Math.max(0, video.currentTime - timeStep);
+        const timeStep = Math.abs(step) * video.duration * 1.5;
+        const target   = Math.max(0, video.currentTime - timeStep);
         if (!revSeeking) {
           video.currentTime = target;
           revSeeking = true;
