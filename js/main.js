@@ -169,13 +169,11 @@ function initVideoScrub() {
   const section = document.getElementById('video-scrub');
   if (!section) return;
 
-  const video = section.querySelector('.scrub-video');
+  const video  = section.querySelector('.scrub-video');
   const canvas = section.querySelector('.scrub-canvas');
   const texts  = section.querySelectorAll('.scrub-text');
 
-  let targetRate  = 1;
   let currentRate = 1;
-  let scrollTimer = null;
   let ctx = null;
 
   // Canvas fallback while video loads
@@ -192,63 +190,70 @@ function initVideoScrub() {
   if (video) {
     video.loop  = true;
     video.muted = true;
-
-    // Start playing as soon as enough data is available
-    video.addEventListener('canplay', () => video.play().catch(() => {}));
-
-    // Hide canvas once video is running
-    video.addEventListener('playing', () => {
-      if (canvas) canvas.style.display = 'none';
-    });
-
-    video.addEventListener('error', () => {
-      if (canvas) canvas.style.removeProperty('display');
-    });
+    video.addEventListener('canplay',  () => video.play().catch(() => {}));
+    video.addEventListener('playing',  () => { if (canvas) canvas.style.display = 'none'; });
+    video.addEventListener('error',    () => { if (canvas) canvas.style.removeProperty('display'); });
   }
 
-  // Only play/pause based on section visibility — saves resources
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (!video) return;
-      if (e.isIntersecting) video.play().catch(() => {});
-      else                  video.pause();
-    });
-  }, { threshold: 0.1 });
-  if (video) observer.observe(section);
+  // Pause when section leaves viewport — saves resources
+  new IntersectionObserver(entries => {
+    if (!video) return;
+    entries[0].isIntersecting ? video.play().catch(() => {}) : video.pause();
+  }, { threshold: 0.1 }).observe(section);
 
-  // Scroll → speed up to 2x, ease back to 1x after 200 ms of no scroll
-  window.addEventListener('scroll', () => {
-    targetRate = 2;
-    clearTimeout(scrollTimer);
-    scrollTimer = setTimeout(() => { targetRate = 1; }, 200);
-  }, { passive: true });
+  /*
+   * Scroll progress (0→1) drives everything:
+   *
+   *  0.00 – 0.08  entrance  (1x, no text)
+   *  0.08 – 0.30  text[0]   (1x)   "Da origem…"
+   *  0.30 – 0.42  bridge    (bell-curve up to 2.2x)
+   *  0.42 – 0.62  text[1]   (1x)   "…à torra perfeita…"
+   *  0.62 – 0.74  bridge    (bell-curve up to 2.2x)
+   *  0.74 – 0.92  text[2]   (1x)   "…à tua chávena."
+   *  0.92 – 1.00  outro     (1x, no text)
+   */
+  const TEXT_ZONES = [
+    { show: 0.08, hide: 0.30 },
+    { show: 0.42, hide: 0.62 },
+    { show: 0.74, hide: 0.92 },
+  ];
+  const BRIDGE_ZONES = [
+    { start: 0.30, end: 0.42 },
+    { start: 0.62, end: 0.74 },
+  ];
 
   function tick() {
-    // Smooth lerp toward target rate (snappier up, relaxed down)
-    const lerpSpeed = targetRate > currentRate ? 0.12 : 0.06;
-    currentRate += (targetRate - currentRate) * lerpSpeed;
+    const rect     = section.getBoundingClientRect();
+    const traveled = -rect.top;
+    const total    = rect.height - window.innerHeight;
+    const progress = Math.max(0, Math.min(1, traveled / total));
 
+    // Speed: bell-curve ramp inside each bridge zone, 1x everywhere else
+    let targetRate = 1;
+    for (const b of BRIDGE_ZONES) {
+      if (progress >= b.start && progress <= b.end) {
+        const t = (progress - b.start) / (b.end - b.start); // 0 → 1
+        targetRate = 1 + Math.sin(t * Math.PI) * 1.2;       // 1x → 2.2x → 1x
+        break;
+      }
+    }
+
+    // Smooth lerp — fast to accelerate, gentle to decelerate
+    currentRate += (targetRate - currentRate) * (targetRate > currentRate ? 0.10 : 0.05);
     if (video && video.readyState >= 2 && !video.paused) {
-      video.playbackRate = currentRate;
+      video.playbackRate = Math.max(0.1, currentRate);
     }
 
-    // Canvas fallback draw while video isn't ready
+    // Text visibility driven by scroll, not video time
+    texts.forEach((t, i) => {
+      const z = TEXT_ZONES[i];
+      if (!z) return;
+      t.classList.toggle('visible', progress >= z.show && progress <= z.hide);
+    });
+
+    // Canvas fallback
     if (canvas && canvas.style.display !== 'none' && ctx) {
-      const rect     = section.getBoundingClientRect();
-      const traveled = -rect.top;
-      const total    = rect.height - window.innerHeight;
-      const p = Math.max(0, Math.min(1, traveled / total));
-      drawPlaceholder(ctx, canvas, p);
-    }
-
-    // Text phases tied to video playback position
-    if (video && video.duration > 0) {
-      const p = video.currentTime / video.duration;
-      texts.forEach((t, i) => {
-        const mid     = (i + 1) / (texts.length + 1);
-        const inRange = p > mid - 0.1 && p < mid + 0.15;
-        t.classList.toggle('visible', inRange);
-      });
+      drawPlaceholder(ctx, canvas, progress);
     }
 
     requestAnimationFrame(tick);
