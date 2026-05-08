@@ -233,11 +233,9 @@ function initVideoScrub() {
       if (video && duration > 0) {
         const targetTime = duration * progress;
         if (!isSeeking) {
-          if (Math.abs(targetTime - video.currentTime) > 0.032) {
-            video.currentTime = targetTime;
-            isSeeking = true;
-            pendingTime = -1;
-          }
+          video.currentTime = targetTime;
+          isSeeking = true;
+          pendingTime = -1;
         } else {
           pendingTime = targetTime; // will be applied once seeked fires
         }
