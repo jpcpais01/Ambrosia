@@ -179,6 +179,7 @@ function initVideoScrub() {
   let virtualTime     = 0;    // desired video time for backward seeks
   let revSeeking      = false;
   let revPending      = -1;
+  let wantForward     = true; // guards against canplay re-firing during backward seeks
   let ctx             = null;
 
   const MAX_STEP       = 0.006;  // max progress units per frame (~2.8 s min traverse)
@@ -197,7 +198,7 @@ function initVideoScrub() {
   if (video) {
     video.loop  = true;
     video.muted = true;
-    video.addEventListener('canplay',  () => video.play().catch(() => {}));
+    video.addEventListener('canplay',  () => { if (wantForward) video.play().catch(() => {}); });
     video.addEventListener('playing',  () => { if (canvas) canvas.style.display = 'none'; });
     video.addEventListener('seeked', () => {
       if (revPending >= 0) {
@@ -240,9 +241,10 @@ function initVideoScrub() {
 
       if (step > 0.00005) {
         // ── Active forward scroll ─────────────────────────────
-        revSeeking = false;
-        revPending = -1;
-        virtualTime = video.currentTime; // re-sync so backward is accurate if we reverse
+        wantForward = true;
+        revSeeking  = false;
+        revPending  = -1;
+        virtualTime = video.currentTime;
         if (video.paused) video.play().catch(() => {});
         const targetRate = 1 + (step / MAX_STEP) * 2; // 1× – 3×
         currentRate += (targetRate - currentRate) * 0.18;
@@ -250,13 +252,12 @@ function initVideoScrub() {
 
       } else if (step < -0.00005 || (Math.abs(step) <= 0.00005 && lastDir < 0)) {
         // ── Backward scroll OR idle after scrolling up ────────
+        wantForward = false; // stops canplay from re-triggering play()
         const activeStep = Math.abs(step) > 0.00005 ? Math.abs(step) : MAX_STEP * 0.4;
-        if (!video.paused) video.pause();
+        video.pause();
 
-        // Advance virtual time backward
         virtualTime = Math.max(0, virtualTime - activeStep * video.duration * 1.5);
 
-        // Only fire a seek when target has moved enough (avoids seek-every-frame stutter)
         if (!revSeeking && Math.abs(virtualTime - video.currentTime) > SEEK_THRESHOLD) {
           video.currentTime = virtualTime;
           revSeeking = true;
@@ -268,6 +269,7 @@ function initVideoScrub() {
 
       } else {
         // ── Idle after scrolling forward — play at 1× ─────────
+        wantForward = true;
         virtualTime = video.currentTime;
         if (video.paused) video.play().catch(() => {});
         currentRate += (1 - currentRate) * 0.05;
