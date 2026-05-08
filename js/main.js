@@ -175,6 +175,8 @@ function initVideoScrub() {
 
   let currentRate = 1;
   let lastScrollY = window.scrollY;
+  let revSeeking  = false; // backward seek in-flight
+  let revPending  = -1;    // latest backward target while seeking
   let ctx = null;
 
   if (canvas) {
@@ -190,61 +192,82 @@ function initVideoScrub() {
   if (video) {
     video.loop  = true;
     video.muted = true;
-    // Ensure playback starts (autoplay attr handles most cases, this is a fallback)
-    const tryPlay = () => video.play().catch(() => {});
-    video.addEventListener('canplay', tryPlay);
-    video.addEventListener('playing', () => { if (canvas) canvas.style.display = 'none'; });
+    video.addEventListener('canplay',  () => video.play().catch(() => {}));
+    video.addEventListener('playing',  () => { if (canvas) canvas.style.display = 'none'; });
+
+    // Backward seek queue — applies latest pending target once current seek finishes
+    video.addEventListener('seeked', () => {
+      if (revPending >= 0) {
+        video.currentTime = revPending;
+        revPending = -1;
+      } else {
+        revSeeking = false;
+      }
+    });
   }
 
-  /*
-   * Text zones — defined in scroll-progress space (0 → 1).
-   * Independent of video time so they're always predictable.
-   *
-   *  0.00–0.10  entrance
-   *  0.10–0.33  "Da origem…"
-   *  0.33–0.50  transition (speeds up with scroll velocity)
-   *  0.50–0.68  "…à torra perfeita…"
-   *  0.68–0.82  transition
-   *  0.82–0.95  "…à tua chávena."
-   *  0.95–1.00  outro
-   */
+  // Text zones in scroll-progress space — independent of video time
   const TEXT_ZONES = [
     { show: 0.10, hide: 0.33 },
     { show: 0.50, hide: 0.68 },
     { show: 0.82, hide: 0.95 },
   ];
 
+  // Max px-per-frame before speed is capped (prevents warp on fast flick)
+  const MAX_DELTA = 22;
+
   function tick() {
-    // ── Scroll velocity → playback rate ──────────────────────
-    const scrollY    = window.scrollY;
-    const delta      = Math.abs(scrollY - lastScrollY);
-    lastScrollY      = scrollY;
+    const scrollY  = window.scrollY;
+    const rawDelta = scrollY - lastScrollY;
+    lastScrollY    = scrollY;
 
-    // delta px/frame: 0 = idle (1×), ~15px/frame = fast scroll (2.5×)
-    const targetRate = 1 + Math.min(delta / 12, 1.5);
-    // Snap up fast, ease back slowly for a "linger" feel
-    currentRate += (targetRate - currentRate) * (targetRate > currentRate ? 0.18 : 0.04);
+    // Clamp so a sudden fast flick never warp-speeds the video
+    const delta = Math.sign(rawDelta) * Math.min(Math.abs(rawDelta), MAX_DELTA);
 
-    if (video && video.readyState >= 1) {
-      // Works even on paused/loading video — browser clamps to valid range
-      video.playbackRate = Math.max(0.5, Math.min(currentRate, 4));
-      if (video.paused) video.play().catch(() => {});
+    if (video && video.duration > 0) {
+
+      if (delta > 0.5) {
+        // ── Scrolling DOWN → play forward, boost rate ─────────
+        revSeeking = false;
+        revPending = -1;
+        if (video.paused) video.play().catch(() => {});
+        const targetRate = 1 + Math.min(delta / 10, 2); // 1× – 3×, hard cap
+        currentRate += (targetRate - currentRate) * 0.18; // snap up fast
+        video.playbackRate = currentRate;
+
+      } else if (delta < -0.5) {
+        // ── Scrolling UP → seek backwards ────────────────────
+        if (!video.paused) video.pause();
+        const step   = (Math.abs(delta) / MAX_DELTA) * 0.12 * video.duration;
+        const target = Math.max(0, video.currentTime - step);
+        if (!revSeeking) {
+          video.currentTime = target;
+          revSeeking = true;
+        } else {
+          revPending = target; // queue most recent target
+        }
+        currentRate = 1; // reset so next forward scroll starts fresh at 1×
+
+      } else {
+        // ── Idle → ease back to 1× and keep playing ──────────
+        if (video.paused && !revSeeking) video.play().catch(() => {});
+        currentRate += (1 - currentRate) * 0.05; // slow ease back
+        video.playbackRate = Math.max(0.5, currentRate);
+      }
     }
 
-    // ── Scroll progress through section ──────────────────────
+    // Scroll progress through section (for text zones)
     const rect     = section.getBoundingClientRect();
     const traveled = -rect.top;
     const total    = rect.height - window.innerHeight;
     const progress = Math.max(0, Math.min(1, traveled / total));
 
-    // ── Text visibility ───────────────────────────────────────
     texts.forEach((t, i) => {
       const z = TEXT_ZONES[i];
       if (!z) return;
       t.classList.toggle('visible', progress >= z.show && progress <= z.hide);
     });
 
-    // ── Canvas fallback ───────────────────────────────────────
     if (canvas && canvas.style.display !== 'none' && ctx) {
       drawPlaceholder(ctx, canvas, progress);
     }
