@@ -398,13 +398,12 @@ h1, h2, h3, h4, h5 {
   position: absolute;
   inset: 0;
   z-index: 0;
+  will-change: transform;
 }
 
 .hero-video {
   width: 100%; height: 100%;
   object-fit: cover;
-  transform: translateZ(0);
-  backface-visibility: hidden;
 }
 
 .hero-bg-fallback {
@@ -618,7 +617,7 @@ h1, h2, h3, h4, h5 {
 .scrub-video {
   width: 100%; height: 100%;
   object-fit: cover;
-  will-change: transform;
+  will-change: contents;
 }
 
 .scrub-overlay {

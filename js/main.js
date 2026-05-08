@@ -173,42 +173,86 @@ function initVideoScrub() {
   const canvas = section.querySelector('.scrub-canvas');
   const texts  = section.querySelectorAll('.scrub-text');
 
-  // Size canvas to full viewport
-  let ctx;
+  let ctx        = null;
+  let duration   = 0;
+  let isSeeking  = false;
+  let pendingTime = -1;   // most recent target while a seek is in-flight
+  let useCanvas  = true;
+  let lastProgress = -1;
+
+  // Canvas — only used as fallback while video hasn't loaded
   if (canvas) {
-    function resizeCanvas() {
+    const resizeCanvas = () => {
       canvas.width  = window.innerWidth;
       canvas.height = window.innerHeight;
-    }
+    };
     resizeCanvas();
     ctx = canvas.getContext('2d');
     window.addEventListener('resize', resizeCanvas, { passive: true });
   }
 
-  const hasVideo = video && video.duration > 0;
+  if (video) {
+    video.addEventListener('loadedmetadata', () => {
+      duration = video.duration;
+    });
 
-  // rAF loop — runs every frame, completely independent of scroll event timing.
-  // Reads getBoundingClientRect() each frame so it always has the true position.
+    // Hide canvas as soon as video can play — avoids double-draw overhead
+    video.addEventListener('canplaythrough', () => {
+      useCanvas = false;
+      if (canvas) canvas.style.display = 'none';
+    });
+
+    // When seek completes, apply the latest pending target (catches up to fast scroll)
+    video.addEventListener('seeked', () => {
+      isSeeking = false;
+      if (pendingTime >= 0) {
+        const t = pendingTime;
+        pendingTime = -1;
+        video.currentTime = t;
+        isSeeking = true;
+      }
+    });
+
+    video.addEventListener('error', () => {
+      useCanvas = true;
+      if (canvas) canvas.style.removeProperty('display');
+    });
+  }
+
   function tick() {
     const rect     = section.getBoundingClientRect();
-    const traveled = -rect.top;                        // px scrolled past section top
-    const total    = rect.height - window.innerHeight; // total scrollable distance
+    const traveled = -rect.top;
+    const total    = rect.height - window.innerHeight;
     const progress = Math.max(0, Math.min(1, traveled / total));
 
-    // Advance scrub video
-    if (video && video.duration > 0) {
-      video.currentTime = video.duration * progress;
+    // Only do work when progress meaningfully changed
+    if (Math.abs(progress - lastProgress) > 0.0008) {
+      lastProgress = progress;
+
+      // Seek video — queue latest target while a seek is in-flight
+      if (video && duration > 0) {
+        const targetTime = duration * progress;
+        if (!isSeeking) {
+          if (Math.abs(targetTime - video.currentTime) > 0.032) {
+            video.currentTime = targetTime;
+            isSeeking = true;
+            pendingTime = -1;
+          }
+        } else {
+          pendingTime = targetTime; // will be applied once seeked fires
+        }
+      }
+
+      // Canvas fallback
+      if (useCanvas && ctx) drawPlaceholder(ctx, canvas, progress);
+
+      // Text phases
+      texts.forEach((t, i) => {
+        const mid     = (i + 1) / (texts.length + 1);
+        const inRange = progress > mid - 0.12 && progress < mid + 0.18;
+        t.classList.toggle('visible', inRange);
+      });
     }
-
-    // Redraw canvas
-    if (ctx) drawPlaceholder(ctx, canvas, progress);
-
-    // Show / hide quote texts
-    texts.forEach((t, i) => {
-      const mid     = (i + 1) / (texts.length + 1); // 0.25 / 0.5 / 0.75
-      const inRange = progress > mid - 0.12 && progress < mid + 0.18;
-      t.classList.toggle('visible', inRange);
-    });
 
     requestAnimationFrame(tick);
   }
@@ -219,28 +263,22 @@ function initVideoScrub() {
 function drawPlaceholder(ctx, canvas, progress) {
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
-
-  // Background gradient shifting with scroll
   const grd = ctx.createLinearGradient(0, 0, W, H);
   const h1 = 30 + progress * 80;
-  grd.addColorStop(0, `hsl(${h1}, 60%, 8%)`);
+  grd.addColorStop(0,   `hsl(${h1},      60%, 8%)`);
   grd.addColorStop(0.5, `hsl(${h1 + 20}, 50%, 15%)`);
-  grd.addColorStop(1, `hsl(${h1 + 40}, 40%, 6%)`);
+  grd.addColorStop(1,   `hsl(${h1 + 40}, 40%, 6%)`);
   ctx.fillStyle = grd;
   ctx.fillRect(0, 0, W, H);
-
-  // Floating circles
   for (let i = 0; i < 6; i++) {
     const x = W * (0.1 + (i * 0.16) + Math.sin(progress * Math.PI * 2 + i) * 0.05);
     const y = H * (0.3 + Math.cos(progress * Math.PI + i * 1.2) * 0.25);
     const r = 40 + i * 20 + progress * 30;
-    const grd2 = ctx.createRadialGradient(x, y, 0, x, y, r);
-    grd2.addColorStop(0, `rgba(200,146,42,${0.06 - i * 0.008})`);
-    grd2.addColorStop(1, 'transparent');
-    ctx.fillStyle = grd2;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
+    const g2 = ctx.createRadialGradient(x, y, 0, x, y, r);
+    g2.addColorStop(0, `rgba(200,146,42,${0.06 - i * 0.008})`);
+    g2.addColorStop(1, 'transparent');
+    ctx.fillStyle = g2;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
 }
 
