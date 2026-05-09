@@ -45,6 +45,10 @@ function initAll() {
   initCart();
   initProductFilters();
   initOriginCards();
+  // Recalculate all ScrollTrigger positions after full layout is set
+  if (typeof ScrollTrigger !== 'undefined') {
+    ScrollTrigger.refresh();
+  }
 }
 
 /* ── CUSTOM CURSOR ──────────────────────────────────────────── */
@@ -166,44 +170,34 @@ function initHero() {
 
 /* ── ORIGINS HORIZONTAL SCROLL ──────────────────────────────── */
 function initOriginsScroll() {
-  const section = document.getElementById('origins-scroll');
-  if (!section) return;
+  const wrap = document.querySelector('.origins-track-wrap');
+  if (!wrap) return;
 
-  const track = section.querySelector('.origins-track');
-  const wrap  = section.querySelector('.origins-track-wrap');
-  if (!track || !wrap) return;
-
-  // ── GSAP horizontal scroll (pinned) ─────────────────────────
-  if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
-    gsap.to(track, {
-      x: () => -(track.scrollWidth - wrap.clientWidth),
-      ease: 'none',
-      scrollTrigger: {
-        trigger: section,
-        start: 'top top',
-        end: () => `+=${track.scrollWidth - wrap.clientWidth}`,
-        scrub: 1,
-        pin: true,
-        anticipatePin: 1,
-        invalidateOnRefresh: true,
-      },
-    });
-    return;
-  }
-
-  // ── Fallback: drag to scroll ─────────────────────────────────
-  let startX, scrollLeft, dragging = false;
+  // Mouse drag to scroll
+  let startX, startLeft, dragging = false;
   wrap.addEventListener('mousedown', e => {
-    dragging = true; startX = e.pageX - wrap.offsetLeft; scrollLeft = wrap.scrollLeft;
+    dragging  = true;
+    startX    = e.pageX;
+    startLeft = wrap.scrollLeft;
+    wrap.style.cursor = 'grabbing';
   });
-  wrap.addEventListener('mouseleave', () => { dragging = false; });
-  wrap.addEventListener('mouseup',   () => { dragging = false; });
-  wrap.addEventListener('mousemove', e => {
+  document.addEventListener('mouseup', () => {
+    dragging = false;
+    wrap.style.cursor = 'grab';
+  });
+  document.addEventListener('mousemove', e => {
     if (!dragging) return;
     e.preventDefault();
-    wrap.scrollLeft = scrollLeft - (e.pageX - wrap.offsetLeft - startX);
+    wrap.scrollLeft = startLeft - (e.pageX - startX);
   });
-  wrap.style.overflowX = 'auto';
+
+  // Arrow button nav
+  const prev = document.querySelector('.origins-prev');
+  const next = document.querySelector('.origins-next');
+  const card = wrap.querySelector('.origin-card');
+  const step = () => (card ? card.offsetWidth + 24 : 320);
+  prev?.addEventListener('click', () => wrap.scrollBy({ left: -step(), behavior: 'smooth' }));
+  next?.addEventListener('click', () => wrap.scrollBy({ left:  step(), behavior: 'smooth' }));
 }
 
 /* ── SCROLL ANIMATIONS ──────────────────────────────────────── */

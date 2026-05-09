@@ -603,18 +603,12 @@ h1, h2, h3, h4, h5 {
 /* ── ORIGINS HORIZONTAL SCROLL ──────────────────────────────── */
 #origins-scroll {
   background: var(--dark-coffee);
-  overflow: hidden;
-}
-
-.origins-inner {
   padding: var(--section-v) 0 var(--section-v) var(--gutter);
-  display: flex;
-  flex-direction: column;
-  gap: 3rem;
 }
 
 .origins-header {
   padding-right: var(--gutter);
+  margin-bottom: 3rem;
 }
 
 .origins-title {
@@ -628,22 +622,28 @@ h1, h2, h3, h4, h5 {
 }
 
 .origins-track-wrap {
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
   cursor: grab;
+  padding-bottom: 1rem;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
 }
+.origins-track-wrap::-webkit-scrollbar { display: none; }
 .origins-track-wrap:active { cursor: grabbing; }
 
 .origins-track {
   display: flex;
   gap: 1.5rem;
   width: max-content;
-  will-change: transform;
 }
 
 .origin-card {
   position: relative;
-  width: clamp(280px, 28vw, 400px);
-  height: clamp(380px, 55vh, 520px);
+  width: clamp(280px, 28vw, 380px);
+  height: clamp(380px, 52vh, 500px);
   background: hsl(var(--card-hue, 28), 18%, 10%);
   border: 1px solid hsl(var(--card-hue, 28), 20%, 18%);
   border-radius: 1.25rem;
@@ -652,8 +652,9 @@ h1, h2, h3, h4, h5 {
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
-  transition: border-color 0.3s ease, transform 0.3s ease;
+  transition: border-color 0.3s ease, transform 0.35s ease;
   flex-shrink: 0;
+  scroll-snap-align: start;
 }
 .origin-card:hover {
   border-color: var(--gold);
@@ -683,7 +684,7 @@ h1, h2, h3, h4, h5 {
 
 .origin-card-name {
   font-family: var(--font-display);
-  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-size: clamp(2rem, 3.5vw, 2.8rem);
   font-weight: 700;
   color: var(--linen);
   letter-spacing: -0.02em;
@@ -724,18 +725,50 @@ h1, h2, h3, h4, h5 {
   user-select: none;
 }
 
+.origins-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: var(--gutter);
+  margin-top: 2rem;
+}
+
 .origins-hint {
   font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(245,235,220,0.3);
-  padding-right: var(--gutter);
-  text-align: right;
+}
+
+.origins-arrows {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.origins-prev,
+.origins-next {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 1px solid rgba(245,235,220,0.2);
+  background: transparent;
+  color: var(--linen);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.3s, background 0.3s;
+}
+.origins-prev:hover,
+.origins-next:hover {
+  border-color: var(--gold);
+  background: rgba(200,146,42,0.1);
 }
 
 @media (max-width: 768px) {
-  .origins-inner { padding-left: 1.25rem; }
-  .origin-card   { width: 75vw; }
+  #origins-scroll { padding-left: 1.25rem; }
+  .origin-card    { width: 78vw; }
 }
 
 /* ── MANIFESTO ──────────────────────────────────────────────── */
