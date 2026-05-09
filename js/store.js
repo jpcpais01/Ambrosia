@@ -183,45 +183,36 @@ const AmbrosiStore = (() => {
 
   /* ── PRODUCT CARD RENDERER ────────────────────────────────── */
   function renderProductCard(product) {
-    const badgeHtml = product.badge
-      ? `<div class="product-badge">${product.badge}</div>` : '';
-    const compareHtml = product.compare_price
-      ? `<span class="original">${product.compare_price.toFixed(2).replace('.', ',')} €</span>` : '';
-    const tagsHtml = product.flavor_notes.slice(0, 3)
-      .map(n => `<span class="flavor-tag">${n}</span>`).join('');
-
+    const badgeHtml = product.badge ? `<span class="product-badge">${product.badge}</span>` : '';
     return `
-      <div class="product-card"
-           data-product-id="${product.id}"
-           data-category="${product.category}"
-           data-price="${product.price}"
-           role="listitem">
-        <div class="product-image-wrap">
-          <div class="img-placeholder" style="position:absolute;inset:0;background:${getPlaceholderGradient(product.id)};"></div>
-          <img
-            src="${product.images[0] || ''}"
-            alt="${product.name}"
-            class="product-img"
-            loading="lazy"
-            onerror="this.style.display='none'"
-          />
-          ${badgeHtml}
-          <div class="product-hover-overlay">
-            <a href="products.html" class="product-view-btn">Ver Produto →</a>
-          </div>
+    <article class="product-card"
+         data-product-id="${product.id}"
+         data-category="${product.category}"
+         data-price="${product.price}"
+         role="listitem">
+      <div class="product-img-wrap">
+        <div class="img-placeholder">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>Foto em breve</span>
         </div>
-        <div class="product-info">
-          <p class="product-origin">${product.origin} · ${product.roast}</p>
-          <h3 class="product-name">${product.name}</h3>
-          <div class="product-tags">${tagsHtml}</div>
-          <div class="product-footer">
-            <div class="product-price" data-price="${product.price}">
-              ${compareHtml}<span class="currency">€</span>${product.price.toFixed(2).replace('.', ',')}
-            </div>
-            <button class="quick-add-btn" data-product-id="${product.id}">+ Carrinho</button>
-          </div>
+        ${badgeHtml}
+        <div class="product-hover-overlay">
+          <span class="product-view-btn">Ver Produto →</span>
         </div>
-      </div>`;
+      </div>
+      <div class="product-info">
+        <p class="product-origin">${product.origin} · ${product.roast}</p>
+        <h3 class="product-name">${product.name}</h3>
+        <p class="product-notes">${product.flavor_notes.slice(0,3).join(', ')}</p>
+        <div class="product-footer">
+          <span class="product-price" data-price="${product.price}">
+            ${product.compare_price ? `<s style="font-size:.8em;opacity:.4;margin-right:.25em">${product.compare_price.toFixed(2).replace('.',',')} €</s>` : ''}
+            ${product.price.toFixed(2).replace('.',',')} €
+          </span>
+          <button class="quick-add" aria-label="Adicionar ao carrinho">+</button>
+        </div>
+      </div>
+    </article>`;
   }
 
   function getPlaceholderGradient(id) {
