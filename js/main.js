@@ -1,100 +1,72 @@
 /* ============================================================
-   AMBROSIA COFFEE — MAIN JS
-   Lenis smooth scroll + GSAP ScrollTrigger animations
+   AMBROSIA COFFEE — MAIN JS (clean rebuild)
    ============================================================ */
 
 /* ── LOADER ─────────────────────────────────────────────────── */
-const loader = document.getElementById('loader');
-const loaderBar = document.querySelector('.loader-bar');
-const loaderPercent = document.querySelector('.loader-percent');
+const loader     = document.getElementById('loader');
+const loaderBar  = loader?.querySelector('.loader-bar');
+const loaderPct  = loader?.querySelector('.loader-pct');
 
-let loadProgress = 0;
-const loadInterval = setInterval(() => {
-  loadProgress += Math.random() * 18 + 6;
-  if (loadProgress >= 100) {
-    loadProgress = 100;
-    clearInterval(loadInterval);
-    setTimeout(hideLoader, 280);
+let pct = 0;
+const loadTick = setInterval(() => {
+  pct += Math.random() * 20 + 5;
+  if (pct >= 100) {
+    pct = 100;
+    clearInterval(loadTick);
+    setTimeout(onLoaded, 300);
   }
-  if (loaderBar) loaderBar.style.width = loadProgress + '%';
-  if (loaderPercent) loaderPercent.textContent = Math.floor(loadProgress) + '%';
+  if (loaderBar) loaderBar.style.width = pct + '%';
+  if (loaderPct)  loaderPct.textContent = Math.floor(pct) + '%';
 }, 80);
 
-function hideLoader() {
-  if (!loader) return;
-  loader.classList.add('hidden');
+function onLoaded() {
+  loader?.classList.add('done');
   document.body.style.overflow = '';
-  initAll();
+  init();
 }
 
 if (loader) document.body.style.overflow = 'hidden';
-else initAll();
+else init();
 
 /* ── INIT ───────────────────────────────────────────────────── */
-function initAll() {
-  initCursor();
-  initLenis();
-  initNav();
-  initScrollProgress();
-  initHero();
-  initOriginsScroll();
-  initScrollAnimations();
-  initParallax();
-  initMarquee();
-  initMobileMenu();
-  initCart();
-  initProductFilters();
-  initOriginCards();
-  // Recalculate all ScrollTrigger positions after full layout is set
+function init() {
+  setupScrollProgress();
+  setupLenis();
+  setupNav();
+  setupHero();
+  setupOrigins();
+  setupScrollAnimations();
+  setupCart();
+  setupNewsletter();
+  setupCursor();
+
+  // After everything is laid out, refresh ScrollTrigger positions
   if (typeof ScrollTrigger !== 'undefined') {
-    ScrollTrigger.refresh();
+    setTimeout(() => ScrollTrigger.refresh(), 100);
   }
 }
 
-/* ── CUSTOM CURSOR ──────────────────────────────────────────── */
-function initCursor() {
-  const cursor = document.getElementById('cursor');
-  const ring = document.getElementById('cursor-ring');
-  if (!cursor || !ring) return;
-  if (window.matchMedia('(pointer: coarse)').matches) return;
+/* ── SCROLL PROGRESS BAR ────────────────────────────────────── */
+function setupScrollProgress() {
+  const bar = document.createElement('div');
+  bar.id = 'scroll-progress';
+  document.body.prepend(bar);
 
-  let mx = -100, my = -100, rx = -100, ry = -100;
-  let raf;
-
-  document.addEventListener('mousemove', e => {
-    mx = e.clientX; my = e.clientY;
-    cursor.style.left = mx + 'px';
-    cursor.style.top  = my + 'px';
-  });
-
-  function animateRing() {
-    rx += (mx - rx) * 0.12;
-    ry += (my - ry) * 0.12;
-    ring.style.left = rx + 'px';
-    ring.style.top  = ry + 'px';
-    raf = requestAnimationFrame(animateRing);
-  }
-  animateRing();
-
-  document.querySelectorAll('a, button, .product-card, .origin-card, .value-card, .team-card, .filter-pill').forEach(el => {
-    el.addEventListener('mouseenter', () => document.body.classList.add('cursor-hover'));
-    el.addEventListener('mouseleave', () => document.body.classList.remove('cursor-hover'));
-  });
-
-  document.querySelectorAll('input, textarea').forEach(el => {
-    el.addEventListener('focus', () => document.body.classList.add('cursor-text'));
-    el.addEventListener('blur',  () => document.body.classList.remove('cursor-text'));
-  });
+  window.addEventListener('scroll', () => {
+    const h   = document.documentElement;
+    const pct = h.scrollTop / (h.scrollHeight - h.clientHeight);
+    bar.style.transform = `scaleX(${pct})`;
+  }, { passive: true });
 }
 
-/* ── LENIS SMOOTH SCROLL ────────────────────────────────────── */
+/* ── LENIS ──────────────────────────────────────────────────── */
 let lenis;
-function initLenis() {
+function setupLenis() {
   if (typeof Lenis === 'undefined') return;
+
   lenis = new Lenis({
-    duration: 1.2,
+    duration: 1.1,
     easing: t => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    smooth: true,
     smoothTouch: false,
   });
 
@@ -106,602 +78,287 @@ function initLenis() {
   requestAnimationFrame(raf);
 }
 
-/* ── NAVIGATION ─────────────────────────────────────────────── */
-function initNav() {
-  const nav = document.getElementById('nav');
-  if (!nav) return;
+/* ── NAV ────────────────────────────────────────────────────── */
+function setupNav() {
+  const nav  = document.getElementById('nav');
+  const ham  = document.getElementById('hamburger');
+  const menu = document.getElementById('mobile-menu');
 
+  // Scrolled state
   window.addEventListener('scroll', () => {
-    nav.classList.toggle('scrolled', window.scrollY > 60);
+    nav?.classList.toggle('scrolled', window.scrollY > 60);
   }, { passive: true });
 
+  // Mobile menu
+  if (ham && menu) {
+    ham.addEventListener('click', () => {
+      const open = ham.classList.toggle('open');
+      menu.classList.toggle('open', open);
+      ham.setAttribute('aria-expanded', open);
+      document.body.style.overflow = open ? 'hidden' : '';
+    });
+    menu.querySelectorAll('.mob-link').forEach(link => {
+      link.addEventListener('click', () => {
+        ham.classList.remove('open');
+        menu.classList.remove('open');
+        ham.setAttribute('aria-expanded', false);
+        document.body.style.overflow = '';
+      });
+    });
+  }
+
   // Active link
-  const links = document.querySelectorAll('.nav-link');
   const page = window.location.pathname.split('/').pop() || 'index.html';
-  links.forEach(link => {
-    const href = link.getAttribute('href');
-    if (href === page || (page === '' && href === 'index.html') ||
-        (page === 'index.html' && href === 'index.html')) {
+  document.querySelectorAll('.nav-link').forEach(link => {
+    const href = link.getAttribute('href') || '';
+    if (href === page || (page === '' && href === 'index.html')) {
       link.classList.add('active');
     }
   });
 }
 
-/* ── SCROLL PROGRESS ────────────────────────────────────────── */
-function initScrollProgress() {
-  const bar = document.getElementById('scroll-progress');
-  if (!bar) return;
-  window.addEventListener('scroll', () => {
-    const h = document.documentElement;
-    const pct = window.scrollY / (h.scrollHeight - h.clientHeight);
-    bar.style.transform = `scaleX(${pct})`;
-  }, { passive: true });
-}
-
-/* ── HERO ANIMATIONS ────────────────────────────────────────── */
-function initHero() {
+/* ── HERO ───────────────────────────────────────────────────── */
+function setupHero() {
   if (typeof gsap === 'undefined') return;
 
-  gsap.timeline({ delay: 0.2 })
-    .from('.hero-eyebrow', { opacity: 0, y: 20, duration: 0.8, ease: 'power3.out' })
-    .from('.hero-title .reveal-line', {
-      y: '110%', opacity: 0, duration: 1, ease: 'power4.out', stagger: 0.12
-    }, '-=0.5')
-    .from('.hero-sub', { opacity: 0, y: 25, duration: 0.9, ease: 'power3.out' }, '-=0.6')
-    .from('.hero-cta > *', { opacity: 0, y: 20, duration: 0.7, ease: 'power3.out', stagger: 0.12 }, '-=0.5')
-    .from('.hero-scroll-hint', { opacity: 0, duration: 0.6 }, '-=0.3')
-    .from('.hero-badge', { opacity: 0, scale: 0.6, duration: 0.8, ease: 'back.out(1.7)' }, '-=0.8');
+  gsap.registerPlugin(ScrollTrigger);
 
-  // Parallax hero video/bg on scroll
-  const heroMedia = document.querySelector('.hero-media');
-  if (heroMedia && typeof ScrollTrigger !== 'undefined') {
-    gsap.to(heroMedia, {
-      yPercent: 25,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: '#hero',
-        start: 'top top',
-        end: 'bottom top',
-        scrub: true,
-      }
-    });
-  }
+  // Entrance animation
+  const tl = gsap.timeline({ delay: 0.1 });
+  tl.from('.hero-eyebrow',  { opacity: 0, y: 15, duration: .7, ease: 'power3.out' })
+    .from('.hero-title .line', { y: '105%', opacity: 0, duration: .9, ease: 'power4.out', stagger: .1 }, '-=.4')
+    .from('.hero-sub',     { opacity: 0, y: 20, duration: .7, ease: 'power3.out' }, '-=.5')
+    .from('.hero-cta > *', { opacity: 0, y: 15, duration: .6, ease: 'power3.out', stagger: .1 }, '-=.4')
+    .from('.hero-scroll-hint', { opacity: 0, duration: .6 }, '-=.2');
+
+  // Parallax on hero video
+  gsap.to('.hero-media', {
+    yPercent: 22,
+    ease: 'none',
+    scrollTrigger: {
+      trigger: '#hero',
+      start: 'top top',
+      end: 'bottom top',
+      scrub: true,
+    },
+  });
 }
 
 /* ── ORIGINS HORIZONTAL SCROLL ──────────────────────────────── */
-function initOriginsScroll() {
-  const wrap = document.querySelector('.origins-track-wrap');
+function setupOrigins() {
+  const wrap = document.querySelector('.origins-scroll-wrap');
   if (!wrap) return;
 
-  // Mouse drag to scroll
-  let startX, startLeft, dragging = false;
+  // Drag to scroll
+  let startX, startLeft, active = false;
+
   wrap.addEventListener('mousedown', e => {
-    dragging  = true;
+    active    = true;
     startX    = e.pageX;
     startLeft = wrap.scrollLeft;
-    wrap.style.cursor = 'grabbing';
+    wrap.classList.add('dragging');
   });
   document.addEventListener('mouseup', () => {
-    dragging = false;
-    wrap.style.cursor = 'grab';
+    active = false;
+    wrap.classList.remove('dragging');
   });
   document.addEventListener('mousemove', e => {
-    if (!dragging) return;
+    if (!active) return;
     e.preventDefault();
     wrap.scrollLeft = startLeft - (e.pageX - startX);
   });
 
-  // Arrow button nav
-  const prev = document.querySelector('.origins-prev');
-  const next = document.querySelector('.origins-next');
-  const card = wrap.querySelector('.origin-card');
-  const step = () => (card ? card.offsetWidth + 24 : 320);
-  prev?.addEventListener('click', () => wrap.scrollBy({ left: -step(), behavior: 'smooth' }));
-  next?.addEventListener('click', () => wrap.scrollBy({ left:  step(), behavior: 'smooth' }));
+  // Arrow buttons
+  const card = wrap.querySelector('.o-card');
+  const gap  = 24;
+  const step = () => (card ? card.offsetWidth + gap : 300);
+
+  document.querySelector('.o-prev')?.addEventListener('click', () =>
+    wrap.scrollBy({ left: -step(), behavior: 'smooth' })
+  );
+  document.querySelector('.o-next')?.addEventListener('click', () =>
+    wrap.scrollBy({ left:  step(), behavior: 'smooth' })
+  );
 }
 
 /* ── SCROLL ANIMATIONS ──────────────────────────────────────── */
-function initScrollAnimations() {
+function setupScrollAnimations() {
   if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
 
-  gsap.registerPlugin(ScrollTrigger);
-
-  // Generic fade-up
-  gsap.utils.toArray('.js-fade-up').forEach(el => {
-    gsap.to(el, {
-      opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-      scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
-    });
-  });
-
-  gsap.utils.toArray('.js-fade-in').forEach(el => {
-    gsap.to(el, {
-      opacity: 1, duration: 1, ease: 'power2.out',
-      scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' }
-    });
-  });
-
-  gsap.utils.toArray('.js-scale-in').forEach(el => {
-    gsap.to(el, {
-      opacity: 1, scale: 1, duration: 1, ease: 'power3.out',
-      scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
-    });
-  });
-
-  gsap.utils.toArray('.js-slide-left').forEach(el => {
-    gsap.to(el, {
-      opacity: 1, x: 0, duration: 1, ease: 'power3.out',
-      scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
-    });
-  });
-
-  gsap.utils.toArray('.js-slide-right').forEach(el => {
-    gsap.to(el, {
-      opacity: 1, x: 0, duration: 1, ease: 'power3.out',
-      scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
-    });
-  });
-
-  // Staggered children
-  document.querySelectorAll('[data-stagger]').forEach(parent => {
-    const delay  = parseFloat(parent.dataset.stagger) || 0.12;
-    const target = parent.dataset.staggerTarget || ':scope > *';
-    gsap.from(parent.querySelectorAll(target), {
-      opacity: 0, y: 35, duration: 0.8, ease: 'power3.out', stagger: delay,
-      scrollTrigger: { trigger: parent, start: 'top 85%', toggleActions: 'play none none none' }
-    });
-  });
-
-  // Manifesto text
-  const manifesto = document.querySelector('.manifesto-text');
-  if (manifesto) {
-    gsap.from(manifesto, {
-      opacity: 0, y: 50, duration: 1.2, ease: 'power4.out',
-      scrollTrigger: { trigger: manifesto, start: 'top 80%' }
+  // Helper: create a from() trigger that fires once when element enters viewport
+  function reveal(targets, vars, triggerEl) {
+    if (!targets || (targets instanceof NodeList && !targets.length)) return;
+    gsap.from(targets, {
+      ...vars,
+      scrollTrigger: {
+        trigger: triggerEl || (targets instanceof NodeList ? targets[0] : targets),
+        start: 'top 90%',
+        toggleActions: 'play none none none',
+      },
     });
   }
 
-  // Origin cards
-  const originCards = document.querySelectorAll('.origin-card');
-  if (originCards.length) {
-    gsap.from(originCards, {
-      opacity: 0, y: 40, scale: 0.96, duration: 0.7, ease: 'power3.out', stagger: 0.1,
-      scrollTrigger: { trigger: '.origins-grid', start: 'top 85%' }
-    });
-  }
+  // Origins section header
+  reveal('.origins-head', { opacity: 0, y: 40, duration: .8, ease: 'power3.out' });
 
-  // Process steps
-  const steps = document.querySelectorAll('.process-step');
-  if (steps.length) {
-    gsap.from(steps, {
-      opacity: 0, y: 50, duration: 0.8, ease: 'power3.out', stagger: 0.15,
-      scrollTrigger: { trigger: '.process-steps', start: 'top 80%' }
-    });
-  }
+  // Origin cards (stagger)
+  reveal(
+    document.querySelectorAll('.o-card'),
+    { opacity: 0, y: 50, duration: .7, ease: 'power3.out', stagger: .12 },
+    '.origins-scroll-wrap'
+  );
 
-  // Testimonials horizontal scroll feel
-  const testTrack = document.querySelector('.testimonials-track');
-  if (testTrack) {
-    gsap.from('.testimonial-card', {
-      opacity: 0, x: 60, duration: 0.8, ease: 'power3.out', stagger: 0.15,
-      scrollTrigger: { trigger: testTrack, start: 'top 85%' }
-    });
-  }
+  // Manifesto
+  reveal('.manifesto-quote',  { opacity: 0, y: 60, duration: 1.1, ease: 'power4.out' });
+  reveal('.manifesto-line',   { opacity: 0, scaleX: 0, duration: .8, ease: 'power3.out', transformOrigin: 'left' });
 
-  // Values grid
-  const valuecards = document.querySelectorAll('.value-card');
-  if (valuecards.length) {
-    gsap.from(valuecards, {
-      opacity: 0, y: 40, duration: 0.8, ease: 'power3.out', stagger: 0.12,
-      scrollTrigger: { trigger: '.values-grid', start: 'top 85%' }
-    });
-  }
+  // Process
+  reveal('.process-head',     { opacity: 0, y: 40, duration: .8, ease: 'power3.out' });
+  reveal(
+    document.querySelectorAll('.process-step'),
+    { opacity: 0, y: 50, duration: .75, ease: 'power3.out', stagger: .18 },
+    '.process-steps'
+  );
 
-  // Timeline items
-  document.querySelectorAll('.timeline-item').forEach((item, i) => {
-    gsap.from(item, {
-      opacity: 0, x: i % 2 === 0 ? -50 : 50, duration: 0.9, ease: 'power3.out',
-      scrollTrigger: { trigger: item, start: 'top 85%' }
-    });
-  });
-
-  // Tropical section title
-  const tropTitle = document.querySelector('.tropical-title');
-  if (tropTitle) {
-    gsap.from(tropTitle, {
-      opacity: 0, y: 80, duration: 1.2, ease: 'power4.out',
-      scrollTrigger: { trigger: tropTitle, start: 'top 80%' }
-    });
-  }
-
-  // Split content
-  const splitContent = document.querySelector('.split-content');
-  if (splitContent) {
-    gsap.from(splitContent.children, {
-      opacity: 0, x: 40, duration: 0.8, ease: 'power3.out', stagger: 0.15,
-      scrollTrigger: { trigger: splitContent, start: 'top 80%' }
-    });
-  }
-
-  // Story content
-  const storyContent = document.querySelector('.story-content');
-  if (storyContent) {
-    gsap.from(storyContent.children, {
-      opacity: 0, x: 50, duration: 0.9, ease: 'power3.out', stagger: 0.15,
-      scrollTrigger: { trigger: storyContent, start: 'top 80%' }
-    });
-  }
+  // Featured products header & cards
+  reveal('.featured-head',    { opacity: 0, y: 40, duration: .8, ease: 'power3.out' });
+  reveal(
+    document.querySelectorAll('.product-card'),
+    { opacity: 0, y: 45, duration: .7, ease: 'power3.out', stagger: .14 },
+    '.products-grid'
+  );
 
   // Newsletter
-  const newsletterInner = document.querySelector('.newsletter-inner');
-  if (newsletterInner) {
-    gsap.from(newsletterInner.children, {
-      opacity: 0, y: 30, duration: 0.8, ease: 'power3.out', stagger: 0.12,
-      scrollTrigger: { trigger: newsletterInner, start: 'top 85%' }
-    });
-  }
+  reveal('.newsletter-inner', { opacity: 0, y: 40, duration: .8, ease: 'power3.out' });
 
   // Footer
-  gsap.from('.footer-top > *', {
-    opacity: 0, y: 30, duration: 0.8, ease: 'power3.out', stagger: 0.12,
-    scrollTrigger: { trigger: '.footer-top', start: 'top 90%' }
-  });
-}
-
-/* ── PARALLAX ───────────────────────────────────────────────── */
-function initParallax() {
-  if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') return;
-
-  // Split media parallax
-  const splitMedia = document.querySelector('.split-media-inner');
-  if (splitMedia) {
-    gsap.to(splitMedia, {
-      yPercent: -15,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: '#immersive-split',
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: true,
-      }
-    });
-  }
-
-  // Tropical background parallax
-  const tropBg = document.querySelector('.tropical-bg');
-  if (tropBg) {
-    gsap.to(tropBg, {
-      yPercent: 20,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: '#tropical',
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: true,
-      }
-    });
-  }
-
-  // Leaf parallax
-  document.querySelectorAll('.leaf').forEach((leaf, i) => {
-    const dir = i % 2 === 0 ? 1 : -1;
-    const speed = 0.08 + (i * 0.04);
-    gsap.to(leaf, {
-      yPercent: dir * 40 * speed * 10,
-      xPercent: dir * 10,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: '#tropical',
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: true,
-      }
-    });
-  });
-
-  // Page hero parallax
-  const pageHeroImg = document.querySelector('.page-hero-img, .about-hero-bg');
-  if (pageHeroImg) {
-    gsap.to(pageHeroImg, {
-      yPercent: 30,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: pageHeroImg.closest('section, #products-hero, #about-hero'),
-        start: 'top top',
-        end: 'bottom top',
-        scrub: true,
-      }
-    });
-  }
-
-  // Story image parallax
-  const storyImg = document.querySelector('.story-img-main');
-  if (storyImg) {
-    gsap.to(storyImg, {
-      yPercent: -8,
-      ease: 'none',
-      scrollTrigger: {
-        trigger: '#about-story',
-        start: 'top bottom',
-        end: 'bottom top',
-        scrub: true,
-      }
-    });
-  }
-}
-
-/* ── MARQUEE ────────────────────────────────────────────────── */
-function initMarquee() {
-  // Clone items for seamless loop
-  document.querySelectorAll('.marquee-track').forEach(track => {
-    const clone = track.cloneNode(true);
-    track.parentElement.appendChild(clone);
-  });
-}
-
-/* ── MOBILE MENU ────────────────────────────────────────────── */
-function initMobileMenu() {
-  const btn  = document.getElementById('hamburger');
-  const menu = document.getElementById('mobile-menu');
-  if (!btn || !menu) return;
-
-  btn.addEventListener('click', () => {
-    btn.classList.toggle('open');
-    menu.classList.toggle('open');
-    document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
-  });
-
-  menu.querySelectorAll('.mobile-nav-link').forEach(link => {
-    link.addEventListener('click', () => {
-      btn.classList.remove('open');
-      menu.classList.remove('open');
-      document.body.style.overflow = '';
-    });
-  });
+  reveal('.footer-top',       { opacity: 0, y: 30, duration: .7, ease: 'power3.out' });
 }
 
 /* ── CART ───────────────────────────────────────────────────── */
-function initCart() {
-  const cartOverlay  = document.getElementById('cart-overlay');
-  const cartSidebar  = document.getElementById('cart-sidebar');
-  const cartClose    = document.getElementById('cart-close');
-  const cartBtns     = document.querySelectorAll('[data-open-cart]');
-  const cartCountEls = document.querySelectorAll('.cart-count');
+function setupCart() {
+  const overlay = document.getElementById('cart-overlay');
+  const sidebar = document.getElementById('cart-sidebar');
+  const closeBtn = document.getElementById('cart-close');
 
-  if (!cartSidebar) return;
+  if (!sidebar) return;
 
-  function openCart() {
-    cartOverlay?.classList.add('open');
-    cartSidebar.classList.add('open');
-    document.body.style.overflow = 'hidden';
-  }
-  function closeCart() {
-    cartOverlay?.classList.remove('open');
-    cartSidebar.classList.remove('open');
-    document.body.style.overflow = '';
-  }
+  const openCart  = () => { overlay?.classList.add('open'); sidebar.classList.add('open'); document.body.style.overflow = 'hidden'; };
+  const closeCart = () => { overlay?.classList.remove('open'); sidebar.classList.remove('open'); document.body.style.overflow = ''; };
 
-  cartBtns.forEach(b => b.addEventListener('click', openCart));
-  cartClose?.addEventListener('click', closeCart);
-  cartOverlay?.addEventListener('click', closeCart);
+  document.querySelectorAll('[data-open-cart]').forEach(b => b.addEventListener('click', openCart));
+  closeBtn?.addEventListener('click', closeCart);
+  overlay?.addEventListener('click', closeCart);
 
-  // Quick add to cart
-  document.querySelectorAll('.quick-add-btn').forEach(btn => {
+  // Quick-add buttons
+  document.querySelectorAll('.quick-add').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
-      const card = btn.closest('.product-card');
-      const name = card?.querySelector('.product-name')?.textContent || 'Produto';
-      const price = card?.querySelector('.product-price')?.dataset.price || '0';
-      const img   = card?.querySelector('.product-img');
-
+      const card  = btn.closest('.product-card');
+      const name  = card?.querySelector('.product-name')?.textContent || 'Produto';
+      const price = parseFloat(card?.dataset.price || 0);
       window.AmbrosiStore?.addToCart({
-        id: card?.dataset.productId || Date.now().toString(),
-        name, price: parseFloat(price), image: img?.src || '', qty: 1,
-        variant: card?.dataset.variant || '250g'
+        id:      card?.dataset.productId || Date.now().toString(),
+        name, price, qty: 1,
+        variant: '250g',
+        image:   '',
       });
-
+      refreshCartUI();
       showToast('✓ Adicionado ao carrinho');
-      updateCartUI();
       openCart();
     });
   });
 
-  // Qty controls
-  document.querySelectorAll('.qty-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const item = btn.closest('.cart-item');
-      if (!item) return;
-      const id  = item.dataset.id;
-      const dir = btn.dataset.dir;
-      window.AmbrosiStore?.updateQty(id, dir);
-      updateCartUI();
-    });
-  });
-
-  updateCartUI();
+  refreshCartUI();
 }
 
-function updateCartUI() {
-  const cart = window.AmbrosiStore?.cart || [];
-  const total = cart.reduce((sum, i) => sum + i.qty, 0);
-
-  document.querySelectorAll('.cart-count').forEach(el => {
-    el.textContent = total;
-    el.style.display = total > 0 ? 'flex' : 'none';
-  });
+function refreshCartUI() {
+  const cart    = window.AmbrosiStore?.cart || [];
+  const total   = cart.reduce((s, i) => s + i.qty, 0);
+  const badge   = document.querySelector('.cart-badge');
+  if (badge) {
+    badge.textContent = total;
+    badge.classList.toggle('visible', total > 0);
+  }
 
   const body = document.querySelector('.cart-body');
   const totalEl = document.querySelector('.cart-total-value');
 
   if (body) {
-    if (cart.length === 0) {
-      body.innerHTML = `
-        <div class="cart-empty">
-          <div class="cart-empty-icon">☕</div>
-          <p>O teu carrinho está vazio</p>
-        </div>`;
-    } else {
-      body.innerHTML = cart.map(item => `
-        <div class="cart-item" data-id="${item.id}">
-          <div class="cart-item-img">${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover">` : ''}</div>
-          <div class="cart-item-info">
-            <div class="cart-item-name">${item.name}</div>
-            <div class="cart-item-variant">${item.variant}</div>
-            <div class="cart-item-price">${formatPrice(item.price * item.qty)}</div>
-            <div class="qty-control" style="margin-top:.6rem">
-              <button class="qty-btn" data-dir="down">−</button>
-              <span class="qty-num">${item.qty}</span>
-              <button class="qty-btn" data-dir="up">+</button>
+    body.innerHTML = cart.length
+      ? cart.map(item => `
+          <div class="cart-item">
+            <div class="cart-item-img"></div>
+            <div>
+              <p class="cart-item-name">${item.name}</p>
+              <p class="cart-item-price">${fmtPrice(item.price * item.qty)}</p>
             </div>
-          </div>
-        </div>`).join('');
-      initCart(); // rebind qty buttons
-    }
+          </div>`).join('')
+      : `<div class="cart-empty"><div class="cart-empty-icon">☕</div><p>O teu carrinho está vazio</p></div>`;
   }
 
-  const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
-  if (totalEl) totalEl.textContent = formatPrice(subtotal);
+  const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
+  if (totalEl) totalEl.textContent = fmtPrice(subtotal);
 }
 
-function formatPrice(n) {
+function fmtPrice(n) {
   return n.toFixed(2).replace('.', ',') + ' €';
 }
 
+/* ── NEWSLETTER ─────────────────────────────────────────────── */
+function setupNewsletter() {
+  const form = document.querySelector('.newsletter-form');
+  if (!form) return;
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const val = form.querySelector('.nl-input')?.value?.trim();
+    if (!val) return;
+    showToast('✓ Subscrito com sucesso!');
+    form.reset();
+  });
+}
+
 /* ── TOAST ──────────────────────────────────────────────────── */
-function showToast(message) {
-  let toast = document.querySelector('.toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.className = 'toast';
-    document.body.appendChild(toast);
-  }
-  toast.textContent = message;
-  toast.classList.add('show');
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => toast.classList.remove('show'), 2800);
+function showToast(msg) {
+  let t = document.querySelector('.toast');
+  if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
-/* ── PRODUCT FILTERS ────────────────────────────────────────── */
-function initProductFilters() {
-  const pills = document.querySelectorAll('.filter-pill');
-  const cards = document.querySelectorAll('.product-card[data-category]');
-  if (!pills.length) return;
+/* ── CURSOR ─────────────────────────────────────────────────── */
+function setupCursor() {
+  const dot  = document.getElementById('cursor');
+  const ring = document.getElementById('cursor-ring');
+  if (!dot || !ring) return;
+  if (window.matchMedia('(pointer: coarse)').matches) {
+    dot.style.display = ring.style.display = 'none';
+    return;
+  }
 
-  pills.forEach(pill => {
-    pill.addEventListener('click', () => {
-      pills.forEach(p => p.classList.remove('active'));
-      pill.classList.add('active');
+  let mx = -200, my = -200, rx = -200, ry = -200;
 
-      const cat = pill.dataset.filter;
-      cards.forEach(card => {
-        const match = cat === 'all' || card.dataset.category === cat;
-        if (typeof gsap !== 'undefined') {
-          gsap.to(card, {
-            opacity: match ? 1 : 0.2,
-            scale: match ? 1 : 0.96,
-            duration: 0.4,
-            ease: 'power2.out',
-            pointerEvents: match ? 'auto' : 'none',
-          });
-        } else {
-          card.style.opacity = match ? 1 : 0.2;
-        }
-      });
-    });
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    dot.style.left = mx + 'px';
+    dot.style.top  = my + 'px';
   });
 
-  // Sort
-  const sortSelect = document.querySelector('.sort-select');
-  if (sortSelect) {
-    sortSelect.addEventListener('change', () => {
-      const val = sortSelect.value;
-      const grid = document.querySelector('.all-products-grid');
-      if (!grid) return;
-      const items = [...grid.querySelectorAll('.product-card')];
-      items.sort((a, b) => {
-        const pa = parseFloat(a.dataset.price || 0);
-        const pb = parseFloat(b.dataset.price || 0);
-        if (val === 'price-asc')  return pa - pb;
-        if (val === 'price-desc') return pb - pa;
-        return 0;
-      });
-      items.forEach(item => grid.appendChild(item));
-    });
-  }
-}
+  (function animRing() {
+    rx += (mx - rx) * .1;
+    ry += (my - ry) * .1;
+    ring.style.left = rx + 'px';
+    ring.style.top  = ry + 'px';
+    requestAnimationFrame(animRing);
+  })();
 
-/* ── ORIGIN CARDS ───────────────────────────────────────────── */
-function initOriginCards() {
-  document.querySelectorAll('.origin-card').forEach(card => {
-    card.addEventListener('mouseenter', () => {
-      if (typeof gsap === 'undefined') return;
-      gsap.to(card, { y: -8, duration: 0.4, ease: 'power2.out' });
-    });
-    card.addEventListener('mouseleave', () => {
-      if (typeof gsap === 'undefined') return;
-      gsap.to(card, { y: 0, duration: 0.4, ease: 'power2.out' });
-    });
+  document.querySelectorAll('a, button, .o-card, .product-card').forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('hovered'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('hovered'));
   });
 }
 
-/* ── FLOATING LEAVES SVG ────────────────────────────────────── */
-function generateLeaves() {
-  const container = document.querySelector('.tropical-leaves');
-  if (!container) return;
-
-  const leafPaths = [
-    'M10,80 Q50,-20 90,80 Q50,180 10,80Z',
-    'M20,10 Q100,30 80,90 Q10,70 20,10Z',
-    'M50,0 Q100,50 50,100 Q0,50 50,0Z',
-  ];
-
-  for (let i = 0; i < 12; i++) {
-    const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    leaf.setAttribute('viewBox', '0 0 100 100');
-    leaf.classList.add('leaf');
-    const size = 60 + Math.random() * 120;
-    leaf.style.cssText = `
-      width: ${size}px;
-      height: ${size}px;
-      left: ${Math.random() * 100}%;
-      top: ${Math.random() * 100}%;
-      transform: rotate(${Math.random() * 360}deg);
-    `;
-    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    path.setAttribute('d', leafPaths[i % leafPaths.length]);
-    path.setAttribute('fill', '#4A7C59');
-    leaf.appendChild(path);
-    container.appendChild(leaf);
-    leaf.classList.add('leaf');
-  }
-}
-generateLeaves();
-
-/* ── BADGE SVG TEXT ─────────────────────────────────────────── */
-function initBadge() {
-  const svg = document.querySelector('.hero-badge svg');
-  if (!svg) return;
-  const text = 'CAFÉ PREMIUM • AMBROSIA • CAFÉ PREMIUM • AMBROSIA • ';
-  const textPath = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  path.setAttribute('id', 'badge-circle');
-  path.setAttribute('d', 'M 50,50 m -45,0 a 45,45 0 1,1 90,0 a 45,45 0 1,1 -90,0');
-  path.setAttribute('fill', 'none');
-  const tp = document.createElementNS('http://www.w3.org/2000/svg', 'textPath');
-  tp.setAttribute('href', '#badge-circle');
-  tp.setAttribute('startOffset', '0%');
-  tp.textContent = text;
-  textPath.setAttribute('font-size', '8.5');
-  textPath.setAttribute('fill', '#C8922A');
-  textPath.setAttribute('font-family', 'Montserrat, sans-serif');
-  textPath.setAttribute('font-weight', '600');
-  textPath.setAttribute('letter-spacing', '0.5');
-  textPath.appendChild(tp);
-  svg.setAttribute('viewBox', '0 0 100 100');
-  svg.appendChild(path);
-  svg.appendChild(textPath);
-}
-initBadge();
-
-/* ── EXPOSE HELPERS FOR OTHER SCRIPTS ───────────────────────── */
-window.AmbrosiaCoffee = { showToast, updateCartUI, formatPrice };
+/* ── EXPOSE GLOBALS ─────────────────────────────────────────── */
+window.AmbrosiaCoffee = { showToast, refreshCartUI, fmtPrice };
