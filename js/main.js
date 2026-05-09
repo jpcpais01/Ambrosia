@@ -37,7 +37,7 @@ function initAll() {
   initNav();
   initScrollProgress();
   initHero();
-  initVideoScrub();
+  initOriginsScroll();
   initScrollAnimations();
   initParallax();
   initMarquee();
@@ -164,112 +164,46 @@ function initHero() {
   }
 }
 
-/* ── VIDEO SCRUB ────────────────────────────────────────────── */
-function initVideoScrub() {
-  const section = document.getElementById('video-scrub');
+/* ── ORIGINS HORIZONTAL SCROLL ──────────────────────────────── */
+function initOriginsScroll() {
+  const section = document.getElementById('origins-scroll');
   if (!section) return;
 
-  const video  = section.querySelector('.scrub-video');
-  const canvas = section.querySelector('.scrub-canvas');
-  const texts  = section.querySelectorAll('.scrub-text');
+  const track = section.querySelector('.origins-track');
+  const wrap  = section.querySelector('.origins-track-wrap');
+  if (!track || !wrap) return;
 
-  const TEXT_ZONES = [
-    { show: 0.10, hide: 0.33 },
-    { show: 0.50, hide: 0.68 },
-    { show: 0.82, hide: 0.95 },
-  ];
-
-  // ── Canvas fallback ──────────────────────────────────────────
-  let ctx = null;
-  if (canvas) {
-    canvas.width  = window.innerWidth;
-    canvas.height = window.innerHeight;
-    ctx = canvas.getContext('2d');
-    window.addEventListener('resize', () => {
-      canvas.width  = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }, { passive: true });
-  }
-
-  // ── Video setup ──────────────────────────────────────────────
-  let videoReady = false;
-  if (video) {
-    video.muted   = true;
-    video.loop    = false;
-    video.preload = 'auto';
-    video.pause();
-
-    const onReady = () => {
-      videoReady = true;
-      video.pause();
-      if (canvas) canvas.style.display = 'none';
-    };
-
-    if (video.readyState >= 2) {
-      onReady();
-    } else {
-      video.addEventListener('loadeddata',     onReady, { once: true });
-      video.addEventListener('canplaythrough', onReady, { once: true });
-    }
-    video.addEventListener('error', () => { videoReady = false; });
-  }
-
-  // ── Apply progress ───────────────────────────────────────────
-  function applyProgress(p) {
-    if (video && videoReady && video.duration > 0) {
-      video.currentTime = p * video.duration;
-      if (!video.paused) video.pause();
-    } else if (ctx && canvas && canvas.style.display !== 'none') {
-      drawPlaceholder(ctx, canvas, p);
-    }
-    texts.forEach((t, i) => {
-      const z = TEXT_ZONES[i];
-      if (!z) return;
-      t.classList.toggle('visible', p >= z.show && p <= z.hide);
-    });
-  }
-
-  // ── ScrollTrigger (already synced with Lenis) ────────────────
-  if (typeof ScrollTrigger !== 'undefined') {
-    ScrollTrigger.create({
-      trigger: section,
-      start: 'top top',
-      end: 'bottom bottom',
-      onUpdate: (self) => applyProgress(self.progress),
+  // ── GSAP horizontal scroll (pinned) ─────────────────────────
+  if (typeof gsap !== 'undefined' && typeof ScrollTrigger !== 'undefined') {
+    gsap.to(track, {
+      x: () => -(track.scrollWidth - wrap.clientWidth),
+      ease: 'none',
+      scrollTrigger: {
+        trigger: section,
+        start: 'top top',
+        end: () => `+=${track.scrollWidth - wrap.clientWidth}`,
+        scrub: 1,
+        pin: true,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+      },
     });
     return;
   }
 
-  // ── Fallback: native scroll ──────────────────────────────────
-  function calcProgress() {
-    const rect = section.getBoundingClientRect();
-    const scrollable = rect.height - window.innerHeight;
-    return scrollable > 0 ? Math.max(0, Math.min(1, -rect.top / scrollable)) : 0;
-  }
-  window.addEventListener('scroll', () => applyProgress(calcProgress()), { passive: true });
-  applyProgress(calcProgress());
-}
-
-function drawPlaceholder(ctx, canvas, progress) {
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-  const grd = ctx.createLinearGradient(0, 0, W, H);
-  const h1 = 30 + progress * 80;
-  grd.addColorStop(0,   `hsl(${h1},      60%, 8%)`);
-  grd.addColorStop(0.5, `hsl(${h1 + 20}, 50%, 15%)`);
-  grd.addColorStop(1,   `hsl(${h1 + 40}, 40%, 6%)`);
-  ctx.fillStyle = grd;
-  ctx.fillRect(0, 0, W, H);
-  for (let i = 0; i < 6; i++) {
-    const x = W * (0.1 + (i * 0.16) + Math.sin(progress * Math.PI * 2 + i) * 0.05);
-    const y = H * (0.3 + Math.cos(progress * Math.PI + i * 1.2) * 0.25);
-    const r = 40 + i * 20 + progress * 30;
-    const g2 = ctx.createRadialGradient(x, y, 0, x, y, r);
-    g2.addColorStop(0, `rgba(200,146,42,${0.06 - i * 0.008})`);
-    g2.addColorStop(1, 'transparent');
-    ctx.fillStyle = g2;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-  }
+  // ── Fallback: drag to scroll ─────────────────────────────────
+  let startX, scrollLeft, dragging = false;
+  wrap.addEventListener('mousedown', e => {
+    dragging = true; startX = e.pageX - wrap.offsetLeft; scrollLeft = wrap.scrollLeft;
+  });
+  wrap.addEventListener('mouseleave', () => { dragging = false; });
+  wrap.addEventListener('mouseup',   () => { dragging = false; });
+  wrap.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    e.preventDefault();
+    wrap.scrollLeft = scrollLeft - (e.pageX - wrap.offsetLeft - startX);
+  });
+  wrap.style.overflowX = 'auto';
 }
 
 /* ── SCROLL ANIMATIONS ──────────────────────────────────────── */
