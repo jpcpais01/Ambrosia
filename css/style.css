@@ -364,9 +364,12 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
   letter-spacing: -.04em;
   color: var(--linen);
   margin-bottom: 2rem;
-  overflow: hidden;
 }
-.hero-title .line { display: block; }
+.hero-title .line {
+  display: block;
+  overflow: hidden; /* clip per-line, not on the whole title */
+  padding-bottom: .06em; /* prevent descender clipping */
+}
 .hero-title em { color: var(--amber); font-style: italic; }
 
 .hero-sub {
