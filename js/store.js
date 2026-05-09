@@ -237,11 +237,8 @@ const AmbrosiStore = (() => {
   }
 
   /* ── RENDER GRIDS ─────────────────────────────────────────── */
-  function renderFeaturedGrid() {
-    const grid = document.querySelector('.products-grid');
-    if (!grid) return;
-    grid.innerHTML = getFeatured(3).map(renderProductCard).join('');
-  }
+  // renderFeaturedGrid intentionally removed — featured cards are
+  // static HTML in index.html so they can be styled and managed directly.
 
   function renderAllProductsGrid() {
     const grid = document.querySelector('.all-products-grid');
@@ -251,8 +248,7 @@ const AmbrosiStore = (() => {
 
   /* ── INIT ─────────────────────────────────────────────────── */
   function init() {
-    renderFeaturedGrid();
-    renderAllProductsGrid();
+    renderAllProductsGrid(); // only runs on products.html (no-op on index)
   }
 
   return {
