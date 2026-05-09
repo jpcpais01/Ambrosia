@@ -439,6 +439,7 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
 #origins {
   padding: var(--sv) 0 var(--sv) var(--g);
   background: var(--dark);
+  overflow: visible; /* never clip — cards must be able to hover up */
 }
 
 .origins-head {
@@ -457,13 +458,10 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
 
 .origins-scroll-wrap {
   overflow-x: auto;
-  overflow-y: visible;
+  /* overflow-y must be auto (browser enforces it when overflow-x is auto) */
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   cursor: grab;
-  /* padding-top + negative margin-top gives room for hover translateY without clipping */
-  padding: 20px 0 28px;
-  margin-top: -20px;
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -474,6 +472,10 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
   display: flex;
   gap: 1.5rem;
   width: max-content;
+  /* Padding inside the track = the scrollable content area.
+     Cards hover -10px upward and can grow 10px downward,
+     so 14px top / 18px bottom keeps transforms within bounds. */
+  padding: 14px 0 18px;
 }
 
 .o-card {
@@ -494,7 +496,7 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
 }
 .o-card:hover {
   border-color: var(--gold);
-  transform: translateY(-8px);
+  transform: translateY(-10px);
 }
 
 /* Image area at top of card */
