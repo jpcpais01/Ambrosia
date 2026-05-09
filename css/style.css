@@ -315,10 +315,10 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
 #hero {
   position: relative;
   height: 100svh;
-  min-height: 600px;
+  min-height: 580px;
+  overflow: hidden;
   display: flex;
   align-items: center;
-  overflow: hidden;
 }
 
 .hero-media {
@@ -326,7 +326,8 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
   inset: 0;
 }
 .hero-video {
-  width: 100%; height: 100%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 .hero-overlay {
@@ -334,17 +335,18 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
   inset: 0;
   background: linear-gradient(
     to bottom,
-    rgba(13,5,0,.35) 0%,
-    rgba(13,5,0,.55) 60%,
-    rgba(13,5,0,.85) 100%
+    rgba(13,5,0,.3) 0%,
+    rgba(13,5,0,.5) 55%,
+    rgba(13,5,0,.88) 100%
   );
 }
 
+/* Content takes full width; padding provides the gutters.
+   No max-width here — the title's own clamp keeps it proportional. */
 .hero-content {
   position: relative;
   z-index: 2;
   width: 100%;
-  max-width: 900px;
   padding: 0 var(--g);
 }
 
@@ -359,32 +361,39 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
 
 .hero-title {
   font-family: var(--f-display);
-  font-size: clamp(3.5rem, 9vw, 10rem);
+  font-size: clamp(3rem, 8vw, 8rem);
   font-weight: 900;
   line-height: .95;
   letter-spacing: -.04em;
   color: var(--linen);
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
+/* overflow:hidden clips text during the GSAP slide-up entrance */
 .hero-title .line {
   display: block;
-  overflow: hidden; /* clip per-line, not on the whole title */
-  padding-bottom: .06em; /* prevent descender clipping */
+  overflow: hidden;
+  padding-bottom: .1em;
 }
 .hero-title em { color: var(--amber); font-style: italic; }
 
 .hero-sub {
-  font-size: clamp(1rem, 1.8vw, 1.4rem);
-  color: rgba(250,247,242,.75);
-  margin-bottom: 3rem;
-  line-height: 1.6;
+  max-width: 540px;
+  font-size: clamp(.95rem, 1.5vw, 1.2rem);
+  color: rgba(250,247,242,.78);
+  margin-bottom: 2.5rem;
+  line-height: 1.65;
 }
 
-.hero-cta { display: flex; flex-wrap: wrap; gap: 1rem; }
+.hero-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
 
 .hero-scroll-hint {
   position: absolute;
-  bottom: 2.5rem; left: var(--g);
+  bottom: 2.5rem;
+  left: var(--g);
   z-index: 2;
   display: flex;
   flex-direction: column;
@@ -397,7 +406,8 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
   color: rgba(250,247,242,.4);
 }
 .scroll-line {
-  width: 1px; height: 50px;
+  width: 1px;
+  height: 50px;
   background: linear-gradient(to bottom, rgba(200,146,42,.6), transparent);
   animation: scrollPulse 2s ease-in-out infinite;
 }
