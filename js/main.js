@@ -191,7 +191,7 @@ function initVideoScrub() {
     }, { passive: true });
   }
 
-  // ── Video: keep paused — scrub via currentTime only ─────────
+  // ── Video setup ──────────────────────────────────────────────
   let videoReady = false;
   if (video) {
     video.muted   = true;
@@ -208,42 +208,46 @@ function initVideoScrub() {
     if (video.readyState >= 2) {
       onReady();
     } else {
-      video.addEventListener('loadeddata',    onReady, { once: true });
+      video.addEventListener('loadeddata',     onReady, { once: true });
       video.addEventListener('canplaythrough', onReady, { once: true });
     }
-
-    video.addEventListener('error', () => {
-      videoReady = false;
-    });
+    video.addEventListener('error', () => { videoReady = false; });
   }
 
-  // ── Scrub state ──────────────────────────────────────────────
-  let progress = 0;  // 0–1, direct (Lenis already eases scroll)
-
-  function tick() {
-    const rect       = section.getBoundingClientRect();
-    const scrollable = rect.height - window.innerHeight;
-    progress = scrollable > 0
-      ? Math.max(0, Math.min(1, -rect.top / scrollable))
-      : 0;
-
+  // ── Apply progress ───────────────────────────────────────────
+  function applyProgress(p) {
     if (video && videoReady && video.duration > 0) {
-      video.currentTime = progress * video.duration;
+      video.currentTime = p * video.duration;
       if (!video.paused) video.pause();
     } else if (ctx && canvas && canvas.style.display !== 'none') {
-      drawPlaceholder(ctx, canvas, progress);
+      drawPlaceholder(ctx, canvas, p);
     }
-
     texts.forEach((t, i) => {
       const z = TEXT_ZONES[i];
       if (!z) return;
-      t.classList.toggle('visible', progress >= z.show && progress <= z.hide);
+      t.classList.toggle('visible', p >= z.show && p <= z.hide);
     });
-
-    requestAnimationFrame(tick);
   }
 
-  requestAnimationFrame(tick);
+  // ── ScrollTrigger (already synced with Lenis) ────────────────
+  if (typeof ScrollTrigger !== 'undefined') {
+    ScrollTrigger.create({
+      trigger: section,
+      start: 'top top',
+      end: 'bottom bottom',
+      onUpdate: (self) => applyProgress(self.progress),
+    });
+    return;
+  }
+
+  // ── Fallback: native scroll ──────────────────────────────────
+  function calcProgress() {
+    const rect = section.getBoundingClientRect();
+    const scrollable = rect.height - window.innerHeight;
+    return scrollable > 0 ? Math.max(0, Math.min(1, -rect.top / scrollable)) : 0;
+  }
+  window.addEventListener('scroll', () => applyProgress(calcProgress()), { passive: true });
+  applyProgress(calcProgress());
 }
 
 function drawPlaceholder(ctx, canvas, progress) {
