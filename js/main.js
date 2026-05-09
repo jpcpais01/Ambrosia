@@ -218,27 +218,18 @@ function initVideoScrub() {
   }
 
   // ── Scrub state ──────────────────────────────────────────────
-  let progress = 0;  // smoothed 0–1
+  let progress = 0;  // 0–1, direct (Lenis already eases scroll)
 
   function tick() {
     const rect       = section.getBoundingClientRect();
     const scrollable = rect.height - window.innerHeight;
-    const raw        = scrollable > 0
+    progress = scrollable > 0
       ? Math.max(0, Math.min(1, -rect.top / scrollable))
       : 0;
 
-    if (Math.abs(raw - progress) > 0.3) {
-      progress = raw;
-    } else {
-      progress += (raw - progress) * 0.12;
-      if (Math.abs(raw - progress) < 0.0005) progress = raw;
-    }
-
     if (video && videoReady && video.duration > 0) {
-      const target = progress * video.duration;
-      if (Math.abs(video.currentTime - target) > 0.033) {
-        video.currentTime = target;
-      }
+      video.currentTime = progress * video.duration;
+      if (!video.paused) video.pause();
     } else if (ctx && canvas && canvas.style.display !== 'none') {
       drawPlaceholder(ctx, canvas, progress);
     }
