@@ -173,18 +173,14 @@ function initVideoScrub() {
   const canvas = section.querySelector('.scrub-canvas');
   const texts  = section.querySelectorAll('.scrub-text');
 
-  let displayProgress = 0;
-  let currentRate     = 1;
-  let lastDir         = 1;    // +1 forward, -1 backward — persists when idle
-  let virtualTime     = 0;    // desired video time for backward seeks
-  let revSeeking      = false;
-  let revPending      = -1;
-  let wantForward     = true; // guards against canplay re-firing during backward seeks
-  let ctx             = null;
+  const TEXT_ZONES = [
+    { show: 0.10, hide: 0.33 },
+    { show: 0.50, hide: 0.68 },
+    { show: 0.82, hide: 0.95 },
+  ];
 
-  const MAX_STEP       = 0.006;  // max progress units per frame (~2.8 s min traverse)
-  const SEEK_THRESHOLD = 0.04;   // only fire a new seek when target differs by >40 ms
-
+  // ── Canvas fallback ──────────────────────────────────────────
+  let ctx = null;
   if (canvas) {
     canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -195,98 +191,63 @@ function initVideoScrub() {
     }, { passive: true });
   }
 
+  // ── Video: keep paused — scrub via currentTime only ─────────
+  let videoReady = false;
   if (video) {
-    video.loop  = true;
-    video.muted = true;
-    video.addEventListener('canplay',  () => { if (wantForward) video.play().catch(() => {}); });
-    video.addEventListener('playing',  () => { if (canvas) canvas.style.display = 'none'; });
-    video.addEventListener('seeked', () => {
-      if (revPending >= 0) {
-        video.currentTime = revPending;
-        revPending = -1;
-      } else {
-        revSeeking = false;
-      }
+    video.muted   = true;
+    video.loop    = false;
+    video.preload = 'auto';
+    video.pause();
+
+    const onReady = () => {
+      videoReady = true;
+      video.pause();
+      if (canvas) canvas.style.display = 'none';
+    };
+
+    if (video.readyState >= 2) {
+      onReady();
+    } else {
+      video.addEventListener('loadeddata',    onReady, { once: true });
+      video.addEventListener('canplaythrough', onReady, { once: true });
+    }
+
+    video.addEventListener('error', () => {
+      videoReady = false;
     });
   }
 
-  const TEXT_ZONES = [
-    { show: 0.10, hide: 0.33 },
-    { show: 0.50, hide: 0.68 },
-    { show: 0.82, hide: 0.95 },
-  ];
+  // ── Scrub state ──────────────────────────────────────────────
+  let progress = 0;  // smoothed 0–1
 
   function tick() {
-    // ── Raw scroll progress ───────────────────────────────────
-    const rect          = section.getBoundingClientRect();
-    const rawProgress   = Math.max(0, Math.min(1, -rect.top / (rect.height - window.innerHeight)));
+    const rect       = section.getBoundingClientRect();
+    const scrollable = rect.height - window.innerHeight;
+    const raw        = scrollable > 0
+      ? Math.max(0, Math.min(1, -rect.top / scrollable))
+      : 0;
 
-    // ── Rate-limited display progress ────────────────────────
-    // If user jumped way past (e.g. keyboard Home/End), snap instead of trailing
-    const diff = rawProgress - displayProgress;
-    let step;
-    if (Math.abs(diff) > 0.25) {
-      displayProgress = rawProgress; // snap — avoids long catch-up after big jumps
-      step = 0;
+    if (Math.abs(raw - progress) > 0.3) {
+      progress = raw;
     } else {
-      step = Math.sign(diff) * Math.min(Math.abs(diff), MAX_STEP);
-      displayProgress = Math.max(0, Math.min(1, displayProgress + step));
+      progress += (raw - progress) * 0.12;
+      if (Math.abs(raw - progress) < 0.0005) progress = raw;
     }
 
-    // Update last direction on any meaningful movement
-    if (Math.abs(step) > 0.00005) lastDir = Math.sign(step);
-
-    // ── Video direction and speed follow displayProgress step ─
-    if (video && video.duration > 0) {
-
-      if (step > 0.00005) {
-        // ── Active forward scroll ─────────────────────────────
-        wantForward = true;
-        revSeeking  = false;
-        revPending  = -1;
-        virtualTime = video.currentTime;
-        if (video.paused) video.play().catch(() => {});
-        const targetRate = 1 + (step / MAX_STEP) * 2; // 1× – 3×
-        currentRate += (targetRate - currentRate) * 0.18;
-        video.playbackRate = currentRate;
-
-      } else if (step < -0.00005 || (Math.abs(step) <= 0.00005 && lastDir < 0)) {
-        // ── Backward scroll OR idle after scrolling up ────────
-        wantForward = false; // stops canplay from re-triggering play()
-        const activeStep = Math.abs(step) > 0.00005 ? Math.abs(step) : MAX_STEP * 0.4;
-        video.pause();
-
-        virtualTime = Math.max(0, virtualTime - activeStep * video.duration * 1.5);
-
-        if (!revSeeking && Math.abs(virtualTime - video.currentTime) > SEEK_THRESHOLD) {
-          video.currentTime = virtualTime;
-          revSeeking = true;
-          revPending = -1;
-        } else if (revSeeking) {
-          revPending = virtualTime;
-        }
-        currentRate = 1;
-
-      } else {
-        // ── Idle after scrolling forward — play at 1× ─────────
-        wantForward = true;
-        virtualTime = video.currentTime;
-        if (video.paused) video.play().catch(() => {});
-        currentRate += (1 - currentRate) * 0.05;
-        video.playbackRate = Math.max(0.5, currentRate);
+    if (video && videoReady && video.duration > 0) {
+      const target = progress * video.duration;
+      if (Math.abs(video.currentTime - target) > 0.033) {
+        video.currentTime = target;
       }
+    } else if (ctx && canvas && canvas.style.display !== 'none') {
+      drawPlaceholder(ctx, canvas, progress);
     }
 
-    // ── Text zones follow displayProgress ────────────────────
     texts.forEach((t, i) => {
       const z = TEXT_ZONES[i];
       if (!z) return;
-      t.classList.toggle('visible', displayProgress >= z.show && displayProgress <= z.hide);
+      t.classList.toggle('visible', progress >= z.show && progress <= z.hide);
     });
-
-    if (canvas && canvas.style.display !== 'none' && ctx) {
-      drawPlaceholder(ctx, canvas, displayProgress);
-    }
 
     requestAnimationFrame(tick);
   }
