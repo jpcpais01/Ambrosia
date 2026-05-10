@@ -695,14 +695,14 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
 
 /* ── PROCESS ────────────────────────────────────────────────── */
 #process {
-  padding: var(--sv) var(--g);
   background: var(--dark);
   overflow: hidden;
 }
 .process-head {
   max-width: 600px;
-  margin: 0 auto 4rem;
+  margin: 0 auto 0;
   text-align: center;
+  padding: var(--sv) var(--g) 3.5rem;
 }
 .process-title {
   font-family: var(--f-display);
@@ -714,100 +714,96 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
   margin-top: .5rem;
 }
 
-/* Three tilted photo cards — fixed width so they never stretch */
-.process-cards {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 2.5rem;
-  padding: 2rem 0 5rem;
-}
-
-.process-card {
-  flex: 0 0 280px;          /* fixed width, no grow/shrink */
-  background: var(--espresso);
-  border: 1px solid rgba(200,146,42,.12);
-  box-shadow: 0 24px 64px rgba(0,0,0,.65), 0 0 0 1px rgba(200,146,42,.06);
-  transition: transform .45s var(--ease), box-shadow .45s var(--ease);
+/* ── Full-bleed diagonal panels ── */
+.process-panels {
   position: relative;
-  z-index: 1;
-}
-.process-card--1 { transform: rotate(-5deg) translateY(20px); }
-.process-card--2 { transform: rotate(2deg); z-index: 2; }
-.process-card--3 { transform: rotate(-3deg) translateY(12px); }
-
-.process-card:hover {
-  transform: rotate(0deg) translateY(-10px) !important;
-  box-shadow: 0 40px 90px rgba(0,0,0,.75), 0 0 0 1px rgba(200,146,42,.3);
-  z-index: 10;
-}
-
-/* Explicit height — no aspect-ratio that could blow up */
-.pc-img {
   width: 100%;
-  height: 340px;
-  overflow: hidden;
-  background: rgba(200,146,42,.06);
+  height: 75vh;
+  min-height: 500px;
+  max-height: 800px;
 }
-.pc-img img {
+.process-panel {
+  position: absolute;
+  inset: 0;
+}
+/* Diagonal cuts: each panel is a trapezoid via clip-path */
+.process-panel--1 { clip-path: polygon(0 0, 40% 0, 30% 100%, 0 100%); z-index: 3; }
+.process-panel--2 { clip-path: polygon(40% 0, 74% 0, 64% 100%, 30% 100%); z-index: 2; }
+.process-panel--3 { clip-path: polygon(74% 0, 100% 0, 100% 100%, 64% 100%); z-index: 1; }
+
+.pp-bg {
+  position: absolute;
+  inset: 0;
+  background: var(--espresso);
+}
+.pp-bg img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
-  transition: transform .6s var(--ease);
 }
-.process-card:hover .pc-img img { transform: scale(1.05); }
-
-.pc-body {
-  padding: 1.25rem 1.5rem 1.75rem;
-  position: relative;
-  border-top: 1px solid rgba(200,146,42,.1);
-}
-.pc-num {
+.pp-overlay {
   position: absolute;
-  top: .9rem; right: 1.1rem;
-  font-family: var(--f-display);
-  font-size: 3rem;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -.04em;
-  color: rgba(200,146,42,.12);
-  user-select: none;
+  inset: 0;
+  background: linear-gradient(to top, rgba(13,5,0,.90) 0%, rgba(13,5,0,.40) 55%, rgba(13,5,0,.15) 100%);
 }
-.pc-title {
-  font-family: var(--f-display);
-  font-size: 1.5rem;
-  font-weight: 700;
+
+.pp-content {
+  position: absolute;
+  bottom: 2.75rem;
+  z-index: 2;
   color: var(--linen);
-  letter-spacing: -.02em;
-  margin-bottom: .5rem;
+  max-width: 200px;
 }
-.pc-text {
-  font-size: .9rem;
-  color: rgba(245,230,208,.6);
-  line-height: 1.65;
+.process-panel--1 .pp-content { left: 4%;  }
+.process-panel--2 .pp-content { left: 36%; }
+.process-panel--3 .pp-content { left: 68%; }
+
+.pp-num {
+  display: block;
+  font-family: var(--f-display);
+  font-size: clamp(2.5rem, 4vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -.06em;
+  line-height: 1;
+  color: var(--amber);
+  margin-bottom: .4rem;
+}
+.pp-title {
+  font-family: var(--f-display);
+  font-size: clamp(1.3rem, 2.2vw, 2rem);
+  font-weight: 700;
+  letter-spacing: -.03em;
+  line-height: 1.1;
+  margin-bottom: .6rem;
+}
+.pp-text {
+  font-size: clamp(.8rem, 1.1vw, .95rem);
+  color: rgba(245,230,208,.72);
+  line-height: 1.6;
 }
 
-/* Tablet: shrink cards a bit so all 3 still fit side-by-side */
-@media (max-width: 960px) {
-  .process-card { flex: 0 0 210px; }
-  .pc-img { height: 260px; }
-  .process-cards { gap: 1.5rem; }
-}
-
-/* Mobile: stack vertically, remove tilt */
-@media (max-width: 640px) {
-  .process-cards {
+/* Mobile: stack panels vertically, remove diagonal */
+@media (max-width: 700px) {
+  .process-panels {
+    height: auto;
+    max-height: none;
+    display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 1.75rem;
-    padding: 1rem 0 3rem;
   }
-  .process-card--1,
-  .process-card--2,
-  .process-card--3 { transform: none !important; }
-  .process-card { flex: 0 0 auto; width: min(300px, 85vw); }
-  .pc-img { height: 200px; }
+  .process-panel {
+    position: relative;
+    inset: auto;
+    clip-path: none !important;
+    height: 55vw;
+    min-height: 240px;
+  }
+  .pp-content {
+    max-width: 80%;
+    left: 1.5rem !important;
+    bottom: 1.75rem;
+  }
 }
 
 /* ── FEATURED PRODUCTS ──────────────────────────────────────── */
