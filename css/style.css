@@ -700,7 +700,7 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
 }
 .process-head {
   text-align: center;
-  padding: .75rem var(--g) .75rem;
+  padding: .25rem var(--g) .4rem;
 }
 .process-title {
   font-family: var(--f-display);
