@@ -702,7 +702,7 @@ body.hovered #cursor-ring { width: 60px; height: 60px; opacity: .5; }
   max-width: 600px;
   margin: 0 auto 0;
   text-align: center;
-  padding: var(--sv) var(--g) 3.5rem;
+  padding: 2.5rem var(--g) 2.5rem;
 }
 .process-title {
   font-family: var(--f-display);
